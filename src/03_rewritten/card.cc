@@ -21,6 +21,14 @@
 #include "card.h"
 
 // ---------------------------------------------------------------------------
+// countof: return the number of elements of an array
+// ---------------------------------------------------------------------------
+
+#ifndef countof
+#define countof(array) (sizeof(array) / sizeof(array[0]))
+#endif
+
+// ---------------------------------------------------------------------------
 // vec3f: vector implementation
 // ---------------------------------------------------------------------------
 
@@ -104,19 +112,19 @@ struct vec3f
 };
 
 // ---------------------------------------------------------------------------
-// G: world
+// world
 // ---------------------------------------------------------------------------
 
-int G[] = {
-    0b0111100011100010010,
-    0b1000100100000010100,
-    0b1000100100000011000,
-    0b0111100111110010100,
-    0b0000100100010010010,
-    0b0000100100010010001,
-    0b0111000011100010000,
-    0b0000000000000010000,
-    0b0000000000000010000
+uint32_t world[] = {
+    0b00000000000000000000100000000000,
+    0b00000000000000000000100000000000,
+    0b00000001110000111000100000000000,
+    0b00000000001001000100100010000000,
+    0b00000000001001000100100100000000,
+    0b00000001111001111100101000000000,
+    0b00000010001001000000110000000000,
+    0b00000010001001000000101000000000,
+    0b00000001111000111000100100000000
 };
 
 // ---------------------------------------------------------------------------
@@ -132,29 +140,74 @@ float R0()
 // trace
 // ---------------------------------------------------------------------------
 
-int trace(const vec3f& origin, const vec3f& direction, float& t, vec3f& normal)
+int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& normal)
 {
-    t = 1e9;
-    int m = 0;
-    float p = -origin.z / direction.z;
-    if(p > .01) {
-        t = p, normal = vec3f(0, 0, 1), m = 1;
-    }
-    for(int k = 19; k--;) {
-        for(int j = 9; j--;) {
-            if(G[j] & 1 << k) {
-                vec3f p = origin + vec3f(-k, 0, -j - 4);
-                float b = vec3f::dot(p, direction), c = vec3f::dot(p, p) - 1, q = b * b - c;
-                if(q > 0) {
-                    float s = -b - ::sqrtf(q);
-                    if(s < t && s > .01) {
-                        t = s, normal = vec3f::normalize(p + direction * t), m = 2;
-                    }
+    double constexpr distance_max = 1e9;
+    double constexpr distance_min = 0.01;
+    int    constexpr cols         = 32;
+    int    constexpr rows         = countof(world);
+    int    constexpr col_offset   = 24;
+    int    constexpr row_offset   = 12;
+    int              result       = 0;
+
+    auto hit_init = [&]() -> void
+    {
+        distance = distance_max;
+    };
+
+    auto hit_plane = [&]() -> void
+    {
+        const float plane = -origin.z / direction.z;
+        if(plane > distance_min) {
+            result   = 1;
+            distance = plane;
+            normal   = vec3f(0, 0, 1);
+        }
+    };
+
+    auto hit_sphere = [&](const float x, const float y, const float z) -> void
+    {
+        const vec3f p = origin + vec3f(x, y, z);
+        const float b = vec3f::dot(p, direction);
+        const float c = vec3f::dot(p, p) - 1;
+        const float q = b * b - c;
+        if(q > 0) {
+            const float sphere = -b - ::sqrtf(q);
+            if((sphere < distance) && (sphere > distance_min)) {
+                result   = 2;
+                distance = sphere;
+                normal   = vec3f::normalize(p + direction * distance);
+            }
+        }
+    };
+
+    auto hit_spheres = [&]() -> void
+    {
+        for(int row = 0; row < rows; ++row) {
+            uint32_t constexpr msb = (1 << 31);
+            uint32_t           val = world[row];
+            if(val == 0) {
+                continue;
+            }
+            for(int col = 0; col < cols; ++col) {
+                if(val & msb) {
+                    const float x = static_cast<float>(col - col_offset);
+                    const float y = static_cast<float>(0);
+                    const float z = static_cast<float>(row - row_offset);
+                    hit_sphere(x, y, z);
+                }
+                if((val <<= 1) == 0) {
+                    break;
                 }
             }
         }
-    }
-    return m;
+    };
+
+    hit_init();
+    hit_plane();
+    hit_spheres();
+
+    return result;
 }
 
 // ---------------------------------------------------------------------------
