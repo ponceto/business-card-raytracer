@@ -137,6 +137,18 @@ float R0()
 }
 
 // ---------------------------------------------------------------------------
+// colors
+// ---------------------------------------------------------------------------
+
+const vec3f sky(0.7f, 0.6f, 1.0f);
+
+const vec3f checkerboard1(3.0f, 1.0f, 1.0f);
+
+const vec3f checkerboard2(3.0f, 3.0f, 3.0f);
+
+const vec3f light_pos(9.0f, 9.0f, 16.0f);
+
+// ---------------------------------------------------------------------------
 // trace
 // ---------------------------------------------------------------------------
 
@@ -148,7 +160,7 @@ int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& n
     int    constexpr rows         = countof(world);
     int    constexpr col_offset   = 24;
     int    constexpr row_offset   = 12;
-    int              result       = 0;
+    int              hit_type     = card::kNoHit;
 
     auto hit_init = [&]() -> void
     {
@@ -159,9 +171,9 @@ int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& n
     {
         const float plane = -origin.z / direction.z;
         if(plane > distance_min) {
-            result   = 1;
+            hit_type = card::kPlaneHit;
             distance = plane;
-            normal   = vec3f(0, 0, 1);
+            normal   = vec3f(0.0f, 0.0f, 1.0f);
         }
     };
 
@@ -169,12 +181,12 @@ int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& n
     {
         const vec3f p = origin + vec3f(x, y, z);
         const float b = vec3f::dot(p, direction);
-        const float c = vec3f::dot(p, p) - 1;
+        const float c = vec3f::dot(p, p) - 1.0f;
         const float q = b * b - c;
         if(q > 0) {
             const float sphere = -b - ::sqrtf(q);
             if((sphere < distance) && (sphere > distance_min)) {
-                result   = 2;
+                hit_type = card::kSphereHit;
                 distance = sphere;
                 normal   = vec3f::normalize(p + direction * distance);
             }
@@ -192,7 +204,7 @@ int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& n
             for(int col = 0; col < cols; ++col) {
                 if(val & msb) {
                     const float x = static_cast<float>(col - col_offset);
-                    const float y = static_cast<float>(0);
+                    const float y = static_cast<float>(0.0f);
                     const float z = static_cast<float>(row - row_offset);
                     hit_sphere(x, y, z);
                 }
@@ -207,7 +219,7 @@ int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& n
     hit_plane();
     hit_spheres();
 
-    return result;
+    return hit_type;
 }
 
 // ---------------------------------------------------------------------------
@@ -216,23 +228,30 @@ int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& n
 
 vec3f sample(const vec3f& origin, const vec3f& direction)
 {
-    float t;
-    vec3f n;
-    int m = trace(origin, direction, t, n);
-    if(!m) {
-        return vec3f(.7, .6, 1) * ::powf(1 - direction.z, 4);
+    float distance;
+    vec3f normal;
+    const int hit_type = trace(origin, direction, distance, normal);
+
+    if(hit_type == card::kNoHit) {
+        return sky * ::powf(1.0f - direction.z, 4.0f);
     }
-    vec3f h = origin + direction * t, l = vec3f::normalize(vec3f(9 + R0(), 9 + R0(), 16) + h * -1), r = direction + n * (vec3f::dot(n, direction) * -2);
-    float b = vec3f::dot(l, n);
-    if(b < 0 || trace(h, l, t, n)) {
-        b = 0;
+
+    const vec3f h = origin + direction * distance;
+    const vec3f l = vec3f::normalize(vec3f(9.0f + R0(), 9.0f + R0(), 16.0f) - h);
+    const vec3f r = direction + normal * (vec3f::dot(normal, direction) * -2.0f);
+    float b = vec3f::dot(l, normal);
+    if((b < 0.0f) || trace(h, l, distance, normal)) {
+        b = 0.0f;
     }
-    float p = ::powf(vec3f::dot(l, r) * (b > 0), 99);
-    if(m & 1) {
-        h = h * .2;
-        return (static_cast<int>(::ceilf(h.x) + ::ceilf(h.y)) & 1 ? vec3f(3, 1, 1) : vec3f(3, 3, 3)) * (b * .2 + .1);
+    const float p = ::powf(vec3f::dot(l, r) * (b > 0.0f), 99.0f);
+
+    if(hit_type == card::kPlaneHit) {
+        const float x = ::ceilf(h.x * 0.2f);
+        const float y = ::ceilf(h.y * 0.2f);
+        const int tile = static_cast<int>(x + y) & 1;
+        return (tile ? checkerboard1 : checkerboard2) * (b * 0.2f + 0.1f);
     }
-    return vec3f(p, p, p) + sample(h, r) * .5;
+    return sample(h, r) * 0.5f + vec3f(p, p, p);
 }
 
 // ---------------------------------------------------------------------------
@@ -241,30 +260,32 @@ vec3f sample(const vec3f& origin, const vec3f& direction)
 
 void raytrace(ppm::writer& output, const int w, const int h)
 {
-    const int   samples = 64;                // number of ray traced
-    const float fov     = 0.002;             // field of view
-    const float dof     = 99.0;              // depth of field
-    const vec3f ambiant = vec3f(13, 13, 13); // color
-    const vec3f camera  = vec3f(17, 16,  8); // position
-    const vec3f target  = vec3f(11,  0,  8); // position
-    const vec3f camtop  = vec3f( 0,  0,  1); // vector
+    const int   samples = 64;                         // number of ray traced
+    const float fov     = 0.002f;                     // field of view
+    const float dof     = 99.0f;                      // depth of field
+    const vec3f ambiant = vec3f(13.0f, 13.0f, 13.0f); // color
+    const vec3f camera  = vec3f(17.0f, 16.0f,  8.0f); // position
+    const vec3f target  = vec3f(11.0f,  0.0f,  8.0f); // position
+    const vec3f camtop  = vec3f( 0.0f,  0.0f,  1.0f); // vector
     const vec3f camdir  = vec3f::normalize(target - camera);
     const vec3f right   = vec3f::normalize(vec3f::cross(camtop, camdir)) * fov;
     const vec3f down    = vec3f::normalize(vec3f::cross(camdir, right )) * fov;
-    const vec3f c       = (right + down) * -256 + camdir;
+    const vec3f c       = (right + down) * -256.0f + camdir;
     for(int y = (h - 1); y >= 0; --y) {
         for(int x = (w - 1); x >= 0; --x) {
             vec3f color(ambiant);
             for(int count = 0; count < samples; ++count) {
-                const vec3f pos = (right * (R0() - 0.5) * dof)
-                                + ( down * (R0() - 0.5) * dof);
+                const vec3f pos = (right * (R0() - 0.5f) * dof)
+                                + ( down * (R0() - 0.5f) * dof);
                 const vec3f dir = (right * (x + R0()))
                                 + ( down * (y + R0()))
                                 + c;
-                const vec3f ray = vec3f::normalize(pos * -1 + dir * 16);
-                color = color + sample(camera + pos, ray) * 3.5;
+                const vec3f ray = vec3f::normalize(dir * 16.0f - pos);
+                color = color + sample(camera + pos, ray) * 3.5f;
             }
-            output.store(static_cast<int>(color.x), static_cast<int>(color.y), static_cast<int>(color.z));
+            output.store ( static_cast<int>(color.x)
+                         , static_cast<int>(color.y)
+                         , static_cast<int>(color.z) );
         }
     }
 }
