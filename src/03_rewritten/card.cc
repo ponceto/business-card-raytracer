@@ -128,10 +128,10 @@ const uint32_t world[] = {
 };
 
 // ---------------------------------------------------------------------------
-// R0: random number generator [+0.0 ; +1.0]
+// random number generator in range [+0.0 ; +1.0]
 // ---------------------------------------------------------------------------
 
-float R0()
+float randomize()
 {
     return static_cast<float>(::rand()) / static_cast<float>(RAND_MAX);
 }
@@ -158,7 +158,7 @@ int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& n
     double constexpr distance_min = 0.01;
     int    constexpr cols         = 32;
     int    constexpr rows         = countof(world);
-    int    constexpr col_offset   = 24;
+    int    constexpr col_offset   = 7;
     int    constexpr row_offset   = 12;
     int              hit_type     = card::kNoHit;
 
@@ -196,19 +196,19 @@ int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& n
     auto hit_spheres = [&]() -> void
     {
         for(int row = 0; row < rows; ++row) {
-            uint32_t constexpr msb = (1 << 31);
+            uint32_t constexpr lsb = (1 << 0);
             uint32_t           val = world[row];
             if(val == 0) {
                 continue;
             }
             for(int col = 0; col < cols; ++col) {
-                if(val & msb) {
+                if(val & lsb) {
                     const float x = static_cast<float>(col - col_offset);
                     const float y = static_cast<float>(0.0f);
                     const float z = static_cast<float>(row - row_offset);
                     hit_sphere(x, y, z);
                 }
-                if((val <<= 1) == 0) {
+                if((val >>= 1) == 0) {
                     break;
                 }
             }
@@ -237,7 +237,7 @@ vec3f sample(const vec3f& origin, const vec3f& direction)
     }
 
     const vec3f h = origin + direction * distance;
-    const vec3f l = vec3f::normalize(vec3f(9.0f + R0(), 9.0f + R0(), 16.0f) - h);
+    const vec3f l = vec3f::normalize(vec3f(-10.0f + randomize(), -10.0f + randomize(), 16.0f) - h);
     const vec3f r = direction + normal * (vec3f::dot(normal, direction) * -2.0f);
     float b = vec3f::dot(l, normal);
     if((b < 0.0f) || trace(h, l, distance, normal)) {
@@ -260,26 +260,39 @@ vec3f sample(const vec3f& origin, const vec3f& direction)
 
 void raytrace(ppm::writer& output, const int w, const int h)
 {
+    const int   half_w  = (w / 2);
+    const int   half_h  = (h / 2);
     const int   samples = 64;                         // number of ray traced
     const float fov     = 0.002f;                     // field of view
     const float dof     = 99.0f;                      // depth of field
-    const vec3f ambiant = vec3f(13.0f, 13.0f, 13.0f); // color
-    const vec3f camera  = vec3f(17.0f, 16.0f,  8.0f); // position
-    const vec3f target  = vec3f(11.0f,  0.0f,  8.0f); // position
-    const vec3f camtop  = vec3f( 0.0f,  0.0f,  1.0f); // vector
+    const vec3f ambiant = vec3f(+13.0f, +13.0f, +13.0f); // color
+    const vec3f camera  = vec3f(-17.0f, -16.0f,  +8.0f); // position
+    const vec3f target  = vec3f(-11.0f,   0.0f,  +8.0f); // position
+    const vec3f camtop  = vec3f(  0.0f,   0.0f,  +1.0f); // vector
     const vec3f camdir  = vec3f::normalize(target - camera);
-    const vec3f right   = vec3f::normalize(vec3f::cross(camtop, camdir)) * fov;
+    const vec3f right   = vec3f::normalize(vec3f::cross(camdir, camtop)) * fov;
     const vec3f down    = vec3f::normalize(vec3f::cross(camdir, right )) * fov;
-    const vec3f c       = (right + down) * -256.0f + camdir;
-    for(int y = (h - 1); y >= 0; --y) {
-        for(int x = (w - 1); x >= 0; --x) {
+    const vec3f corner  = camdir - (right + down) * 0.5f; // lower right corner
+
+    auto R0 = [&]() -> float
+    {
+        return randomize();
+    };
+
+    auto R1 = [&]() -> float
+    {
+        return randomize() - 0.5f;
+    };
+
+    for(int y = 0; y < h; ++y) {
+        for(int x = 0; x < w; ++x) {
             vec3f color(ambiant);
             for(int count = 0; count < samples; ++count) {
-                const vec3f pos = (right * (R0() - 0.5f) * dof)
-                                + ( down * (R0() - 0.5f) * dof);
-                const vec3f dir = (right * (x + R0()))
-                                + ( down * (y + R0()))
-                                + c;
+                const vec3f pos = ( (right * R1())
+                                  + ( down * R1()) ) * dof;
+                const vec3f dir = (right * (static_cast<float>(x - half_w) + R0()))
+                                + ( down * (static_cast<float>(y - half_h) + R0()))
+                                + corner;
                 const vec3f ray = vec3f::normalize(dir * 16.0f - pos);
                 color = color + sample(camera + pos, ray) * 3.5f;
             }
