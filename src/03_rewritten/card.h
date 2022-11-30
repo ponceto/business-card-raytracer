@@ -186,6 +186,95 @@ public:
 }
 
 // ---------------------------------------------------------------------------
+// vec3f: vector implementation
+// ---------------------------------------------------------------------------
+
+namespace card {
+
+class vec3f
+{
+public:
+    vec3f()
+        : x()
+        , y()
+        , z()
+    {
+    }
+
+    vec3f(const float a, const float b, const float c)
+        : x(a)
+        , y(b)
+        , z(c)
+    {
+    }
+
+    vec3f operator+(const vec3f& rhs) const
+    {
+        return vec3f ( (x + rhs.x)
+                     , (y + rhs.y)
+                     , (z + rhs.z) );
+    }
+
+    vec3f operator-(const vec3f& rhs) const
+    {
+        return vec3f ( (x - rhs.x)
+                     , (y - rhs.y)
+                     , (z - rhs.z) );
+    }
+
+    vec3f operator*(const float scalar) const
+    {
+        return vec3f ( (x * scalar)
+                     , (y * scalar)
+                     , (z * scalar) );
+    }
+
+    vec3f operator/(const float scalar) const
+    {
+        return vec3f ( (x / scalar)
+                     , (y / scalar)
+                     , (z / scalar) );
+    }
+
+    static float length(const vec3f& vec)
+    {
+        return ::sqrtf ( (vec.x * vec.x)
+                       + (vec.y * vec.y)
+                       + (vec.z * vec.z) );
+    }
+
+    static float dot(const vec3f& lhs, const vec3f& rhs)
+    {
+        return ( (lhs.x * rhs.x)
+               + (lhs.y * rhs.y)
+               + (lhs.z * rhs.z) );
+    }
+
+    static vec3f cross(const vec3f& lhs, const vec3f& rhs)
+    {
+        return vec3f ( (lhs.y * rhs.z - lhs.z * rhs.y)
+                     , (lhs.z * rhs.x - lhs.x * rhs.z)
+                     , (lhs.x * rhs.y - lhs.y * rhs.x) );
+    }
+
+    static vec3f normalize(const vec3f& vec)
+    {
+        const float veclen = length(vec);
+
+        return vec3f ( (vec.x / veclen)
+                     , (vec.y / veclen)
+                     , (vec.z / veclen) );
+    }
+
+public:
+    float x;
+    float y;
+    float z;
+};
+
+}
+
+// ---------------------------------------------------------------------------
 // card::HitType
 // ---------------------------------------------------------------------------
 
@@ -196,6 +285,42 @@ enum HitType
     kNoHit     = 0,
     kPlaneHit  = 1,
     kSphereHit = 2,
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// card::raytracer
+// ---------------------------------------------------------------------------
+
+namespace card {
+
+class raytracer
+{
+public:
+    raytracer();
+
+    virtual ~raytracer() = default;
+
+    void raytrace(ppm::writer&, const int w, const int h);
+
+protected:
+    vec3f sample(const vec3f& origin, const vec3f& direction);
+
+    int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& normal);
+
+protected:
+    const vec3f _camera_position;
+    const vec3f _camera_target;
+    const vec3f _camera_normal;
+    const vec3f _camera_direction;
+    const vec3f _light_pos;
+    const vec3f _ambiant_color;
+    const vec3f _sky_color;
+    const vec3f _floor_color1;
+    const vec3f _floor_color2;
+    const float _fov;
+    const float _dof;
 };
 
 }

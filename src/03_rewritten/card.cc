@@ -29,91 +29,10 @@
 #endif
 
 // ---------------------------------------------------------------------------
-// vec3f: vector implementation
-// ---------------------------------------------------------------------------
-
-struct vec3f
-{
-    vec3f()
-        : x()
-        , y()
-        , z()
-    {
-    }
-
-    vec3f(const float a, const float b, const float c)
-        : x(a)
-        , y(b)
-        , z(c)
-    {
-    }
-
-    vec3f operator+(const vec3f& rhs) const
-    {
-        return vec3f ( (x + rhs.x)
-                     , (y + rhs.y)
-                     , (z + rhs.z) );
-    }
-
-    vec3f operator-(const vec3f& rhs) const
-    {
-        return vec3f ( (x - rhs.x)
-                     , (y - rhs.y)
-                     , (z - rhs.z) );
-    }
-
-    vec3f operator*(const float scalar) const
-    {
-        return vec3f ( (x * scalar)
-                     , (y * scalar)
-                     , (z * scalar) );
-    }
-
-    vec3f operator/(const float scalar) const
-    {
-        return vec3f ( (x / scalar)
-                     , (y / scalar)
-                     , (z / scalar) );
-    }
-
-    static float length(const vec3f& vec)
-    {
-        return ::sqrtf ( (vec.x * vec.x)
-                       + (vec.y * vec.y)
-                       + (vec.z * vec.z) );
-    }
-
-    static float dot(const vec3f& lhs, const vec3f& rhs)
-    {
-        return ( (lhs.x * rhs.x)
-               + (lhs.y * rhs.y)
-               + (lhs.z * rhs.z) );
-    }
-
-    static vec3f cross(const vec3f& lhs, const vec3f& rhs)
-    {
-        return vec3f ( (lhs.y * rhs.z - lhs.z * rhs.y)
-                     , (lhs.z * rhs.x - lhs.x * rhs.z)
-                     , (lhs.x * rhs.y - lhs.y * rhs.x) );
-    }
-
-    static vec3f normalize(const vec3f& vec)
-    {
-        const float veclen = length(vec);
-
-        return vec3f ( (vec.x / veclen)
-                     , (vec.y / veclen)
-                     , (vec.z / veclen) );
-    }
-
-    float x;
-    float y;
-    float z;
-};
-
-// ---------------------------------------------------------------------------
 // world
 // ---------------------------------------------------------------------------
+
+namespace {
 
 const uint32_t world[] = {
     0b00000000000000000000100000000000,
@@ -127,6 +46,8 @@ const uint32_t world[] = {
     0b00000001111000111000100100000000
 };
 
+}
+
 // ---------------------------------------------------------------------------
 // random number generator in range [+0.0 ; +1.0]
 // ---------------------------------------------------------------------------
@@ -137,22 +58,12 @@ float randomize()
 }
 
 // ---------------------------------------------------------------------------
-// colors
+// card::raytracer::trace
 // ---------------------------------------------------------------------------
 
-const vec3f sky(0.7f, 0.6f, 1.0f);
+namespace card {
 
-const vec3f checkerboard1(3.0f, 1.0f, 1.0f);
-
-const vec3f checkerboard2(3.0f, 3.0f, 3.0f);
-
-const vec3f light_pos(9.0f, 9.0f, 16.0f);
-
-// ---------------------------------------------------------------------------
-// trace
-// ---------------------------------------------------------------------------
-
-int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& normal)
+int raytracer::trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& normal)
 {
     double constexpr distance_max = 1e9;
     double constexpr distance_min = 0.01;
@@ -222,22 +133,26 @@ int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& n
     return hit_type;
 }
 
+}
+
 // ---------------------------------------------------------------------------
-// sample
+// card::raytracer::sample
 // ---------------------------------------------------------------------------
 
-vec3f sample(const vec3f& origin, const vec3f& direction)
+namespace card {
+
+vec3f raytracer::sample(const vec3f& origin, const vec3f& direction)
 {
     float distance;
     vec3f normal;
     const int hit_type = trace(origin, direction, distance, normal);
 
     if(hit_type == card::kNoHit) {
-        return sky * ::powf(1.0f - direction.z, 4.0f);
+        return _sky_color * ::powf(1.0f - direction.z, 4.0f);
     }
 
     const vec3f h = origin + direction * distance;
-    const vec3f l = vec3f::normalize(vec3f(-10.0f + randomize(), -10.0f + randomize(), 16.0f) - h);
+    const vec3f l = vec3f::normalize(vec3f(_light_pos.x + randomize(), _light_pos.y + randomize(), _light_pos.z) - h);
     const vec3f r = direction + normal * (vec3f::dot(normal, direction) * -2.0f);
     float b = vec3f::dot(l, normal);
     if((b < 0.0f) || trace(h, l, distance, normal)) {
@@ -249,30 +164,27 @@ vec3f sample(const vec3f& origin, const vec3f& direction)
         const float x = ::ceilf(h.x * 0.2f);
         const float y = ::ceilf(h.y * 0.2f);
         const int tile = static_cast<int>(x + y) & 1;
-        return (tile ? checkerboard1 : checkerboard2) * (b * 0.2f + 0.1f);
+        return (tile ? _floor_color1 : _floor_color2) * (b * 0.2f + 0.1f);
     }
     return sample(h, r) * 0.5f + vec3f(p, p, p);
 }
 
+}
+
 // ---------------------------------------------------------------------------
-// raytrace
+// card::raytracer::raytrace
 // ---------------------------------------------------------------------------
 
-void raytrace(ppm::writer& output, const int w, const int h)
+namespace card {
+
+void raytracer::raytrace(ppm::writer& output, const int w, const int h)
 {
     const int   half_w  = (w / 2);
     const int   half_h  = (h / 2);
-    const int   samples = 64;                         // number of ray traced
-    const float fov     = 0.002f;                     // field of view
-    const float dof     = 99.0f;                      // depth of field
-    const vec3f ambiant = vec3f(+13.0f, +13.0f, +13.0f); // color
-    const vec3f camera  = vec3f(-17.0f, -16.0f,  +8.0f); // position
-    const vec3f target  = vec3f(-11.0f,   0.0f,  +8.0f); // position
-    const vec3f camtop  = vec3f(  0.0f,   0.0f,  +1.0f); // vector
-    const vec3f camdir  = vec3f::normalize(target - camera);
-    const vec3f right   = vec3f::normalize(vec3f::cross(camdir, camtop)) * fov;
-    const vec3f down    = vec3f::normalize(vec3f::cross(camdir, right )) * fov;
-    const vec3f corner  = camdir - (right + down) * 0.5f; // lower right corner
+    const int   samples = 64;     // number of ray traced
+    const vec3f right   = vec3f::normalize(vec3f::cross(_camera_direction, _camera_normal)) * _fov;
+    const vec3f down    = vec3f::normalize(vec3f::cross(_camera_direction, right )) * _fov;
+    const vec3f corner  = _camera_direction - (right + down) * 0.5f; // lower right corner
 
     auto R0 = [&]() -> float
     {
@@ -286,21 +198,46 @@ void raytrace(ppm::writer& output, const int w, const int h)
 
     for(int y = 0; y < h; ++y) {
         for(int x = 0; x < w; ++x) {
-            vec3f color(ambiant);
+            vec3f color(_ambiant_color);
             for(int count = 0; count < samples; ++count) {
                 const vec3f pos = ( (right * R1())
-                                  + ( down * R1()) ) * dof;
+                                  + ( down * R1()) ) * _dof;
                 const vec3f dir = (right * (static_cast<float>(x - half_w) + R0()))
                                 + ( down * (static_cast<float>(y - half_h) + R0()))
                                 + corner;
                 const vec3f ray = vec3f::normalize(dir * 16.0f - pos);
-                color = color + sample(camera + pos, ray) * 3.5f;
+                color = color + sample(_camera_position + pos, ray) * 3.5f;
             }
             output.store ( static_cast<int>(color.x)
                          , static_cast<int>(color.y)
                          , static_cast<int>(color.z) );
         }
     }
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// card::raytracer
+// ---------------------------------------------------------------------------
+
+namespace card {
+
+raytracer::raytracer()
+    : _camera_position (-17.0f, -16.0f,  +8.0f)
+    , _camera_target   (-11.0f,   0.0f,  +8.0f)
+    , _camera_normal   (  0.0f,   0.0f,  +1.0f)
+    , _camera_direction(vec3f::normalize(_camera_target - _camera_position))
+    , _light_pos       (-10.0f, -10.0f, +16.0f)
+    , _ambiant_color   (+13.0f, +13.0f, +13.0f)
+    , _sky_color       ( +0.7f,  +0.6f,  +1.0f)
+    , _floor_color1    ( +3.0f,  +1.0f,  +1.0f)
+    , _floor_color2    ( +3.0f,  +3.0f,  +3.0f)
+    , _fov(0.002f)
+    , _dof(99.0f)
+{
+}
+
 }
 
 // ---------------------------------------------------------------------------
@@ -556,27 +493,28 @@ void generator::main()
         profiler.reset();
     };
 
-    auto loop = [&]() -> void
-    {
-        ppm::writer output(_output);
-
-        output.open(_card_w, _card_h, 255);
-        raytrace(output, _card_w, _card_h);
-        output.close();
-    };
-
     auto end = [&]() -> void
     {
         cout() << profiler.name() << ':' << ' ' << profiler.elapsed() << 's' << std::endl;
         profiler.reset();
     };
 
+    auto render = [&]() -> void
+    {
+        ppm::writer output(_output);
+        card::raytracer raytracer;
+
+        output.open(_card_w, _card_h, 255);
+        begin();
+        raytracer.raytrace(output, _card_w, _card_h);
+        end();
+        output.close();
+    };
+
     auto execute = [&]() -> void
     {
         check();
-        begin();
-        loop();
-        end();
+        render();
     };
 
     return execute();
