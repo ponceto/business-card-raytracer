@@ -236,6 +236,38 @@ public:
                      , (z / scalar) );
     }
 
+    vec3f& operator+=(const vec3f& rhs)
+    {
+        x += rhs.x;
+        y += rhs.y;
+        z += rhs.z;
+        return *this;
+    }
+
+    vec3f& operator-=(const vec3f& rhs)
+    {
+        x -= rhs.x;
+        y -= rhs.y;
+        z -= rhs.z;
+        return *this;
+    }
+
+    vec3f& operator*=(const float scalar)
+    {
+        x *= scalar;
+        y *= scalar;
+        z *= scalar;
+        return *this;
+    }
+
+    vec3f& operator/=(const float scalar)
+    {
+        x /= scalar;
+        y /= scalar;
+        z /= scalar;
+        return *this;
+    }
+
     static float length(const vec3f& vec)
     {
         return ::sqrtf ( (vec.x * vec.x)
@@ -266,10 +298,36 @@ public:
                      , (vec.z / veclen) );
     }
 
-public:
     float x;
     float y;
     float z;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// ray3f: ray implementation
+// ---------------------------------------------------------------------------
+
+namespace card {
+
+class ray3f
+{
+public:
+    ray3f()
+        : origin()
+        , direction()
+    {
+    }
+
+    ray3f(const vec3f& o, const vec3f& d)
+        : origin(o)
+        , direction(d)
+    {
+    }
+
+    vec3f origin;
+    vec3f direction;
 };
 
 }
@@ -305,9 +363,11 @@ public:
     void raytrace(ppm::writer&, const int w, const int h);
 
 protected:
-    vec3f sample(const vec3f& origin, const vec3f& direction);
+    static float randomize();
 
-    int trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& normal);
+    vec3f sample(const ray3f& ray);
+
+    int trace(const ray3f& ray, vec3f& normal, float& distance);
 
 protected:
     const vec3f _camera_position;
@@ -317,6 +377,7 @@ protected:
     const vec3f _light_pos;
     const vec3f _ambiant_color;
     const vec3f _sky_color;
+    const vec3f _floor_normal;
     const vec3f _floor_color1;
     const vec3f _floor_color2;
     const float _fov;

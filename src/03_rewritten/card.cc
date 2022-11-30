@@ -49,12 +49,16 @@ const uint32_t world[] = {
 }
 
 // ---------------------------------------------------------------------------
-// random number generator in range [+0.0 ; +1.0]
+// card::raytracer::randomize : range [+0.0 ; +1.0]
 // ---------------------------------------------------------------------------
 
-float randomize()
+namespace card {
+
+float raytracer::randomize()
 {
     return static_cast<float>(::rand()) / static_cast<float>(RAND_MAX);
+}
+
 }
 
 // ---------------------------------------------------------------------------
@@ -63,45 +67,67 @@ float randomize()
 
 namespace card {
 
-int raytracer::trace(const vec3f& origin, const vec3f& direction, float& distance, vec3f& normal)
+int raytracer::trace(const ray3f& ray, vec3f& normal, float& hit_distance)
 {
-    double constexpr distance_max = 1e9;
-    double constexpr distance_min = 0.01;
-    int    constexpr cols         = 32;
-    int    constexpr rows         = countof(world);
-    int    constexpr col_offset   = 7;
-    int    constexpr row_offset   = 12;
-    int              hit_type     = card::kNoHit;
+    float constexpr distance_max = 1e9;
+    float constexpr distance_min = 0.01;
+    int   constexpr cols         = 32;
+    int   constexpr rows         = countof(world);
+    int   constexpr col_offset   = -25;
+    int   constexpr row_offset   = +3;
+    int             hit_type     = card::kNoHit;
 
     auto hit_init = [&]() -> void
     {
-        distance = distance_max;
+        hit_distance = distance_max;
     };
 
     auto hit_plane = [&]() -> void
     {
-        const float plane = -origin.z / direction.z;
-        if(plane > distance_min) {
-            hit_type = card::kPlaneHit;
-            distance = plane;
-            normal   = vec3f(0.0f, 0.0f, 1.0f);
+        const float hit = -ray.origin.z / ray.direction.z;
+        if((hit < hit_distance) && (hit > distance_min)) {
+            hit_type     = card::kPlaneHit;
+            hit_distance = hit;
+            normal       = _floor_normal;
         }
     };
 
-    auto hit_sphere = [&](const float x, const float y, const float z) -> void
+    auto hit_sphere = [&](const vec3f& center, const float radius) -> void
     {
-        const vec3f p = origin + vec3f(x, y, z);
-        const float b = vec3f::dot(p, direction);
-        const float c = vec3f::dot(p, p) - 1.0f;
-        const float q = b * b - c;
-        if(q > 0) {
-            const float sphere = -b - ::sqrtf(q);
-            if((sphere < distance) && (sphere > distance_min)) {
-                hit_type = card::kSphereHit;
-                distance = sphere;
-                normal   = vec3f::normalize(p + direction * distance);
+#if 0
+        /*
+         * complete analytic version
+         */
+        const vec3f oc = ray.origin - center;
+        const float a = vec3f::dot(ray.direction, ray.direction);
+        const float b = 2.0f * vec3f::dot(oc, ray.direction);
+        const float c = vec3f::dot(oc, oc) - (radius * radius);
+        const float delta = ((b * b) - (4.0 * a * c));
+        if(delta > 0.0) {
+            const float hit = ((-b - ::sqrtf(delta)) / (2.0f * a));
+            if((hit < hit_distance) && (hit > distance_min)) {
+                hit_type     = card::kSphereHit;
+                hit_distance = hit;
+                normal       = vec3f::normalize(oc + ray.direction * hit_distance);
             }
         }
+#else
+        /*
+         * simplified analytic version
+         */
+        const vec3f oc = ray.origin - center;
+        const float b = vec3f::dot(oc, ray.direction);
+        const float c = vec3f::dot(oc, oc) - (radius * radius);
+        const float delta = ((b * b) - c);
+        if(delta > 0.0) {
+            const float hit = (-b - ::sqrtf(delta));
+            if((hit < hit_distance) && (hit > distance_min)) {
+                hit_type     = card::kSphereHit;
+                hit_distance = hit;
+                normal       = vec3f::normalize(oc + ray.direction * hit_distance);
+            }
+        }
+#endif
     };
 
     auto hit_spheres = [&]() -> void
@@ -114,10 +140,11 @@ int raytracer::trace(const vec3f& origin, const vec3f& direction, float& distanc
             }
             for(int col = 0; col < cols; ++col) {
                 if(val & lsb) {
-                    const float x = static_cast<float>(col - col_offset);
+                    const float x = static_cast<float>((cols - col) + col_offset);
                     const float y = static_cast<float>(0.0f);
-                    const float z = static_cast<float>(row - row_offset);
-                    hit_sphere(x, y, z);
+                    const float z = static_cast<float>((rows - row) + row_offset);
+                    const float r = 1.0;
+                    hit_sphere(vec3f(x, y, z), r);
                 }
                 if((val >>= 1) == 0) {
                     break;
@@ -141,21 +168,21 @@ int raytracer::trace(const vec3f& origin, const vec3f& direction, float& distanc
 
 namespace card {
 
-vec3f raytracer::sample(const vec3f& origin, const vec3f& direction)
+vec3f raytracer::sample(const ray3f& ray)
 {
-    float distance;
+    float hit_distance;
     vec3f normal;
-    const int hit_type = trace(origin, direction, distance, normal);
+    const int hit_type = trace(ray, normal, hit_distance);
 
     if(hit_type == card::kNoHit) {
-        return _sky_color * ::powf(1.0f - direction.z, 4.0f);
+        return _sky_color * ::powf(1.0f - ray.direction.z, 4.0f);
     }
 
-    const vec3f h = origin + direction * distance;
+    const vec3f h = ray.origin + ray.direction * hit_distance;
     const vec3f l = vec3f::normalize(vec3f(_light_pos.x + randomize(), _light_pos.y + randomize(), _light_pos.z) - h);
-    const vec3f r = direction + normal * (vec3f::dot(normal, direction) * -2.0f);
+    const vec3f r = ray.direction + normal * (vec3f::dot(normal, ray.direction) * -2.0f);
     float b = vec3f::dot(l, normal);
-    if((b < 0.0f) || trace(h, l, distance, normal)) {
+    if((b < 0.0f) || trace(ray3f(h, l), normal, hit_distance)) {
         b = 0.0f;
     }
     const float p = ::powf(vec3f::dot(l, r) * (b > 0.0f), 99.0f);
@@ -166,7 +193,7 @@ vec3f raytracer::sample(const vec3f& origin, const vec3f& direction)
         const int tile = static_cast<int>(x + y) & 1;
         return (tile ? _floor_color1 : _floor_color2) * (b * 0.2f + 0.1f);
     }
-    return sample(h, r) * 0.5f + vec3f(p, p, p);
+    return sample(ray3f(h, r)) * 0.5f + vec3f(p, p, p);
 }
 
 }
@@ -181,7 +208,7 @@ void raytracer::raytrace(ppm::writer& output, const int w, const int h)
 {
     const int   half_w  = (w / 2);
     const int   half_h  = (h / 2);
-    const int   samples = 64;     // number of ray traced
+    const int   samples = 64; // number of ray traced
     const vec3f right   = vec3f::normalize(vec3f::cross(_camera_direction, _camera_normal)) * _fov;
     const vec3f down    = vec3f::normalize(vec3f::cross(_camera_direction, right )) * _fov;
     const vec3f corner  = _camera_direction - (right + down) * 0.5f; // lower right corner
@@ -202,11 +229,14 @@ void raytracer::raytrace(ppm::writer& output, const int w, const int h)
             for(int count = 0; count < samples; ++count) {
                 const vec3f pos = ( (right * R1())
                                   + ( down * R1()) ) * _dof;
+
                 const vec3f dir = (right * (static_cast<float>(x - half_w) + R0()))
                                 + ( down * (static_cast<float>(y - half_h) + R0()))
                                 + corner;
-                const vec3f ray = vec3f::normalize(dir * 16.0f - pos);
-                color = color + sample(_camera_position + pos, ray) * 3.5f;
+
+                const ray3f ray(_camera_position + pos, vec3f::normalize(dir * 16.0f - pos));
+
+                color += sample(ray) * 3.5f;
             }
             output.store ( static_cast<int>(color.x)
                          , static_cast<int>(color.y)
@@ -231,6 +261,7 @@ raytracer::raytracer()
     , _light_pos       (-10.0f, -10.0f, +16.0f)
     , _ambiant_color   (+13.0f, +13.0f, +13.0f)
     , _sky_color       ( +0.7f,  +0.6f,  +1.0f)
+    , _floor_normal    (  0.0f,   0.0f,  +1.0f)
     , _floor_color1    ( +3.0f,  +1.0f,  +1.0f)
     , _floor_color2    ( +3.0f,  +3.0f,  +3.0f)
     , _fov(0.002f)
