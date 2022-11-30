@@ -416,27 +416,27 @@ void generator::main()
         profiler.reset();
     };
 
-    auto loop = [&]() -> void
-    {
-        ppm::writer output(_output);
-
-        output.open(_card_w, _card_h, 255);
-        raytrace(output, _card_w, _card_h);
-        output.close();
-    };
-
     auto end = [&]() -> void
     {
         cout() << profiler.name() << ':' << ' ' << profiler.elapsed() << 's' << std::endl;
         profiler.reset();
     };
 
+    auto render = [&]() -> void
+    {
+        ppm::writer output(_output);
+
+        output.open(_card_w, _card_h, 255);
+        begin();
+        raytrace(output, _card_w, _card_h);
+        end();
+        output.close();
+    };
+
     auto execute = [&]() -> void
     {
         check();
-        begin();
-        loop();
-        end();
+        render();
     };
 
     return execute();
