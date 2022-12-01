@@ -4,7 +4,6 @@
  * Original author: Andrew Kensler
  *
  * Refactored with love by Olivier Poncet
- *
  */
 #include <cerrno>
 #include <cstdio>

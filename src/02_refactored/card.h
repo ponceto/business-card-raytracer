@@ -4,7 +4,6 @@
  * Original author: Andrew Kensler
  *
  * Refactored with love by Olivier Poncet
- *
  */
 #ifndef __BUSINESS_CARD_RAYTRACER_H__
 #define __BUSINESS_CARD_RAYTRACER_H__
