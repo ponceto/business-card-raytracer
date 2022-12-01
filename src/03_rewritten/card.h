@@ -4,7 +4,6 @@
  * Original author: Andrew Kensler
  *
  * Refactored with love by Olivier Poncet
- *
  */
 #ifndef __BUSINESS_CARD_RAYTRACER_H__
 #define __BUSINESS_CARD_RAYTRACER_H__
@@ -186,40 +185,52 @@ public:
 }
 
 // ---------------------------------------------------------------------------
-// vec3f: vector implementation
+// gl::vec3f
 // ---------------------------------------------------------------------------
 
-namespace card {
+namespace gl {
 
 class vec3f
 {
 public:
     vec3f()
-        : x()
-        , y()
-        , z()
+        : vec3f(0.0f, 0.0f, 0.0f)
     {
     }
 
-    vec3f(const float a, const float b, const float c)
-        : x(a)
-        , y(b)
-        , z(c)
+    vec3f(const float vx, const float vy, const float vz)
+        : x(vx)
+        , y(vy)
+        , z(vz)
     {
     }
 
-    vec3f operator+(const vec3f& rhs) const
+    vec3f operator+() const
     {
-        return vec3f ( (x + rhs.x)
-                     , (y + rhs.y)
-                     , (z + rhs.z) );
+        return vec3f ( (+x)
+                     , (+y)
+                     , (+z) );
     }
 
-    vec3f operator-(const vec3f& rhs) const
+    vec3f operator-() const
     {
-        return vec3f ( (x - rhs.x)
-                     , (y - rhs.y)
-                     , (z - rhs.z) );
+        return vec3f ( (-x)
+                     , (-y)
+                     , (-z) );
+    }
+
+    vec3f operator+(const vec3f& vector) const
+    {
+        return vec3f ( (x + vector.x)
+                     , (y + vector.y)
+                     , (z + vector.z) );
+    }
+
+    vec3f operator-(const vec3f& vector) const
+    {
+        return vec3f ( (x - vector.x)
+                     , (y - vector.y)
+                     , (z - vector.z) );
     }
 
     vec3f operator*(const float scalar) const
@@ -236,19 +247,19 @@ public:
                      , (z / scalar) );
     }
 
-    vec3f& operator+=(const vec3f& rhs)
+    vec3f& operator+=(const vec3f& vector)
     {
-        x += rhs.x;
-        y += rhs.y;
-        z += rhs.z;
+        x += vector.x;
+        y += vector.y;
+        z += vector.z;
         return *this;
     }
 
-    vec3f& operator-=(const vec3f& rhs)
+    vec3f& operator-=(const vec3f& vector)
     {
-        x -= rhs.x;
-        y -= rhs.y;
-        z -= rhs.z;
+        x -= vector.x;
+        y -= vector.y;
+        z -= vector.z;
         return *this;
     }
 
@@ -306,27 +317,339 @@ public:
 }
 
 // ---------------------------------------------------------------------------
-// ray3f: ray implementation
+// gl::pos3f
 // ---------------------------------------------------------------------------
 
-namespace card {
+namespace gl {
 
-class ray3f
+class pos3f
 {
 public:
-    ray3f()
-        : origin()
-        , direction()
+    pos3f()
+        : pos3f(0.0f, 0.0f, 0.0f)
     {
     }
 
-    ray3f(const vec3f& o, const vec3f& d)
-        : origin(o)
-        , direction(d)
+    pos3f(const float px, const float py, const float pz)
+        : x(px)
+        , y(py)
+        , z(pz)
     {
     }
 
-    vec3f origin;
+    pos3f operator+() const
+    {
+        return pos3f ( (+x)
+                     , (+y)
+                     , (+z) );
+    }
+
+    pos3f operator-() const
+    {
+        return pos3f ( (-x)
+                     , (-y)
+                     , (-z) );
+    }
+
+    pos3f operator+(const vec3f& vector) const
+    {
+        return pos3f ( (x + vector.x)
+                     , (y + vector.y)
+                     , (z + vector.z) );
+    }
+
+    pos3f operator-(const vec3f& vector) const
+    {
+        return pos3f ( (x - vector.x)
+                     , (y - vector.y)
+                     , (z - vector.z) );
+    }
+
+    pos3f operator*(const float scalar) const
+    {
+        return pos3f ( (x * scalar)
+                     , (y * scalar)
+                     , (z * scalar) );
+    }
+
+    pos3f operator/(const float scalar) const
+    {
+        return pos3f ( (x / scalar)
+                     , (y / scalar)
+                     , (z / scalar) );
+    }
+
+    pos3f& operator+=(const vec3f& vector)
+    {
+        x += vector.x;
+        y += vector.y;
+        z += vector.z;
+        return *this;
+    }
+
+    pos3f& operator-=(const vec3f& vector)
+    {
+        x -= vector.x;
+        y -= vector.y;
+        z -= vector.z;
+        return *this;
+    }
+
+    pos3f& operator*=(const float scalar)
+    {
+        x *= scalar;
+        y *= scalar;
+        z *= scalar;
+        return *this;
+    }
+
+    pos3f& operator/=(const float scalar)
+    {
+        x /= scalar;
+        y /= scalar;
+        z /= scalar;
+        return *this;
+    }
+
+    static vec3f difference(const pos3f& lhs, const pos3f& rhs)
+    {
+        return vec3f ( (lhs.x - rhs.x)
+                     , (lhs.y - rhs.y)
+                     , (lhs.z - rhs.z) );
+    }
+
+    float x;
+    float y;
+    float z;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::col3f
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+class col3f
+{
+public:
+    col3f()
+        : col3f(0.0f, 0.0f, 0.0f)
+    {
+    }
+
+    col3f(const float cr, const float cg, const float cb)
+        : r(cr)
+        , g(cg)
+        , b(cb)
+    {
+    }
+
+    col3f operator+(const col3f& color) const
+    {
+        return col3f ( (r + color.r)
+                     , (g + color.g)
+                     , (b + color.b) );
+    }
+
+    col3f operator-(const col3f& color) const
+    {
+        return col3f ( (r - color.r)
+                     , (g - color.g)
+                     , (b - color.b) );
+    }
+
+    col3f operator*(const float scalar) const
+    {
+        return col3f ( (r * scalar)
+                     , (g * scalar)
+                     , (b * scalar) );
+    }
+
+    col3f operator/(const float scalar) const
+    {
+        return col3f ( (r / scalar)
+                     , (g / scalar)
+                     , (b / scalar) );
+    }
+
+    col3f& operator+=(const col3f& color)
+    {
+        r += color.r;
+        g += color.g;
+        b += color.b;
+        return *this;
+    }
+
+    col3f& operator-=(const col3f& color)
+    {
+        r -= color.r;
+        g -= color.g;
+        b -= color.b;
+        return *this;
+    }
+
+    col3f& operator*=(const float scalar)
+    {
+        r *= scalar;
+        g *= scalar;
+        b *= scalar;
+        return *this;
+    }
+
+    col3f& operator/=(const float scalar)
+    {
+        r /= scalar;
+        g /= scalar;
+        b /= scalar;
+        return *this;
+    }
+
+    float r;
+    float g;
+    float b;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::camera
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+class camera
+{
+public:
+    camera()
+        : camera ( pos3f(0.0f, -1.0f, +1.0f)
+                 , vec3f(0.0f, +1.0f, +1.0f)
+                 , vec3f(0.0f,  0.0f, +1.0f) )
+    {
+    }
+
+    camera(const pos3f& camera_position, const pos3f& camera_target, const pos3f& camera_up)
+        : camera ( camera_position
+                 , pos3f::difference(camera_target, camera_position)
+                 , pos3f::difference(camera_up    , camera_position) )
+    {
+    }
+
+    camera(const pos3f& camera_position, const vec3f& camera_direction, const vec3f& camera_normal)
+        : position(camera_position)
+        , direction(vec3f::normalize(camera_direction))
+        , normal(vec3f::normalize(camera_normal))
+    {
+    }
+
+    pos3f position;
+    vec3f direction;
+    vec3f normal;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::light
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+class light
+{
+public:
+    light()
+        : light(pos3f(-100.0f, -100.0f, +100.0f))
+    {
+    }
+
+    light(const pos3f& light_position)
+        : position(light_position)
+    {
+    }
+
+    pos3f position;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::floor
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+class floor
+{
+public:
+    floor()
+        : floor ( pos3f( 0.0f,  0.0f, +0.0f)
+                , vec3f( 0.0f,  0.0f, +1.0f)
+                , col3f(+3.0f, +1.0f, +1.0f)
+                , col3f(+3.0f, +3.0f, +3.0f) )
+    {
+    }
+
+    floor ( const pos3f& plane_position
+          , const vec3f& plane_normal
+          , const col3f& plane_color1
+          , const col3f& plane_color2 )
+        : position(plane_position)
+        , normal(vec3f::normalize(plane_normal))
+        , color1(plane_color1)
+        , color2(plane_color2)
+    {
+    }
+
+    pos3f position;
+    vec3f normal;
+    col3f color1;
+    col3f color2;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::sky
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+class sky
+{
+public:
+    sky()
+        : sky(col3f(+0.7f, +0.6f, +1.0f))
+    {
+    }
+
+    sky(const col3f& c)
+        : color(c)
+    {
+    }
+
+    col3f color;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::ray
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+class ray
+{
+public:
+    ray(const pos3f& ray_origin, const vec3f& ray_direction)
+        : origin(ray_origin)
+        , direction(vec3f::normalize(ray_direction))
+    {
+    }
+
+    pos3f origin;
     vec3f direction;
 };
 
@@ -365,23 +688,18 @@ public:
 protected:
     static float randomize();
 
-    vec3f sample(const ray3f& ray);
+    gl::col3f sample(const gl::ray& ray);
 
-    int trace(const ray3f& ray, vec3f& normal, float& distance);
+    int trace(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal);
 
 protected:
-    const vec3f _camera_position;
-    const vec3f _camera_target;
-    const vec3f _camera_normal;
-    const vec3f _camera_direction;
-    const vec3f _light_pos;
-    const vec3f _ambiant_color;
-    const vec3f _sky_color;
-    const vec3f _floor_normal;
-    const vec3f _floor_color1;
-    const vec3f _floor_color2;
-    const float _fov;
-    const float _dof;
+    const gl::camera _camera;
+    const gl::light  _light;
+    const gl::floor  _floor;
+    const gl::sky    _sky;
+    const gl::col3f  _ambiant;
+    const float      _fov;
+    const float      _dof;
 };
 
 }
