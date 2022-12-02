@@ -2,7 +2,7 @@
 
 This is the source code analysis and refactoring of Andrew Kensler's famous `Business Card Raytracer`.
 
-![Business Card Raytracer](doc/card.png)
+![Business Card Raytracer](doc/aek-old.png)
 
 ## PREAMBLE
 
@@ -142,6 +142,24 @@ The following example will generate a file named `output.ppm`:
 ```
 ./card.bin --output=output.ppm
 ```
+
+### REWRITTEN VERSION
+
+The `rewritten` version is quite like the `refactored` version but with the code heavily refactored, rewritten with a full POO approach and modern C++ features.
+
+The code is more or less 20%~30% faster and the renderer supports colored ambient lighting, colored light with attenuation, etc...
+
+Before:
+
+![Before](doc/aek-old.png)
+
+After:
+
+![After](doc/aek-new.png)
+
+Another example:
+
+![Another example](doc/ponceto.png)
 
 ## REFERENCES
 

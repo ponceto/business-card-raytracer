@@ -14,8 +14,10 @@
 
 namespace base {
 
-using arglist      = std::vector<std::string>;
-using steady_clock = std::chrono::steady_clock;
+using arglist                    = std::vector<std::string>;
+using steady_clock               = std::chrono::steady_clock;
+using mersenne_twister           = std::mt19937;
+using uniform_float_distribution = std::uniform_real_distribution<float>;
 
 }
 
@@ -52,6 +54,31 @@ public:
 private:
     const std::string        _name;
     steady_clock::time_point _time;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// base::ramdom
+// ---------------------------------------------------------------------------
+
+namespace base {
+
+class randomizer
+{
+public:
+    randomizer(const float min, const float max);
+
+    virtual ~randomizer() = default;
+
+    float operator()()
+    {
+        return _distributor(_generator);
+    }
+
+protected:
+    mersenne_twister           _generator;
+    uniform_float_distribution _distributor;
 };
 
 }
@@ -460,6 +487,13 @@ public:
                      , (b - color.b) );
     }
 
+    col3f operator*(const col3f& color) const
+    {
+        return col3f ( (r * color.r)
+                     , (g * color.g)
+                     , (b * color.b) );
+    }
+
     col3f operator*(const float scalar) const
     {
         return col3f ( (r * scalar)
@@ -560,16 +594,22 @@ class light
 {
 public:
     light()
-        : light(pos3f(-100.0f, -100.0f, +100.0f))
+        : light ( pos3f(-100.0f, -100.0f, +100.0f)
+                , col3f(  +1.0f,   +1.0f,   +1.0f)
+                , 1.0f )
     {
     }
 
-    light(const pos3f& light_position)
+    light(const pos3f& light_position, const col3f& light_color, const float power)
         : position(light_position)
+        , color(light_color)
+        , power(power)
     {
     }
 
     pos3f position;
+    col3f color;
+    float power;
 };
 
 }
@@ -586,8 +626,8 @@ public:
     floor()
         : floor ( pos3f( 0.0f,  0.0f, +0.0f)
                 , vec3f( 0.0f,  0.0f, +1.0f)
-                , col3f(+3.0f, +1.0f, +1.0f)
-                , col3f(+3.0f, +3.0f, +3.0f) )
+                , col3f(+1.0f, +0.3f, +0.3f)
+                , col3f(+1.0f, +1.0f, +1.0f) )
     {
     }
 
@@ -663,8 +703,8 @@ namespace card {
 
 enum HitType
 {
-    kNoHit     = 0,
-    kPlaneHit  = 1,
+    kSkyHit    = 0,
+    kFloorHit  = 1,
     kSphereHit = 2,
 };
 
@@ -683,23 +723,26 @@ public:
 
     virtual ~raytracer() = default;
 
-    void raytrace(ppm::writer&, const int w, const int h);
+    void render(ppm::writer&, const int w, const int h);
 
 protected:
-    static float randomize();
+    gl::col3f trace(const gl::ray& ray, const int depth);
 
-    gl::col3f sample(const gl::ray& ray);
-
-    int trace(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal);
+    int hit(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal);
 
 protected:
-    const gl::camera _camera;
-    const gl::light  _light;
-    const gl::floor  _floor;
-    const gl::sky    _sky;
-    const gl::col3f  _ambiant;
-    const float      _fov;
-    const float      _dof;
+    const gl::camera   _camera;
+    const gl::light    _light;
+    const gl::floor    _floor;
+    const gl::sky      _sky;
+    const gl::col3f    _ambiant;
+    const float        _fov;
+    const float        _dof;
+    const float        _focus;
+    const int          _samples;
+    const int          _recursions;
+    base::randomizer   _random1;
+    base::randomizer   _random2;
 };
 
 }

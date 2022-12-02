@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <random>
 #include <iostream>
 #include <stdexcept>
 #include "card.h"
@@ -28,252 +29,14 @@
 #endif
 
 // ---------------------------------------------------------------------------
-// world
+// base::ramdom
 // ---------------------------------------------------------------------------
 
-namespace {
+namespace base {
 
-const uint32_t world[] = {
-    0b00000000000000000000100000000000,
-    0b00000000000000000000100000000000,
-    0b00000001110000111000100000000000,
-    0b00000000001001000100100010000000,
-    0b00000000001001000100100100000000,
-    0b00000001111001111100101000000000,
-    0b00000010001001000000110000000000,
-    0b00000010001001000000101000000000,
-    0b00000001111000111000100100000000
-};
-
-namespace setup {
-
-const gl::pos3f camera_position (-17.0f, -16.0f,  +8.0f);
-const gl::pos3f camera_target   (-11.0f,   0.0f,  +8.0f);
-const gl::pos3f camera_top      (-17.0f, -16.0f,  +9.0f);
-const gl::pos3f light_position  (-10.0f, -10.0f, +16.0f);
-const gl::col3f ambiant_color   (+13.0f, +13.0f, +13.0f);
-
-const float fov = 0.002f;
-const float dof = 99.0f;
-
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// card::raytracer::randomize : range [+0.0 ; +1.0]
-// ---------------------------------------------------------------------------
-
-namespace card {
-
-float raytracer::randomize()
-{
-    return static_cast<float>(::rand()) / static_cast<float>(RAND_MAX);
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// card::raytracer::trace
-// ---------------------------------------------------------------------------
-
-namespace card {
-
-int raytracer::trace(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal)
-{
-    float constexpr distance_max = 1e9;
-    float constexpr distance_min = 0.01;
-    int   constexpr cols         = 32;
-    int   constexpr rows         = countof(world);
-    int   constexpr col_offset   = -25;
-    int   constexpr row_offset   = +3;
-    int             hit_type     = card::kNoHit;
-    float           hit_distance = distance_max;
-
-    auto hit_floor = [&]() -> void
-    {
-        const float hit = -ray.origin.z / ray.direction.z;
-        if((hit < hit_distance) && (hit > distance_min)) {
-            hit_type     = card::kPlaneHit;
-            hit_distance = hit;
-            normal       = _floor.normal;
-        }
-    };
-
-    auto hit_sphere = [&](const gl::pos3f& center, const float radius) -> void
-    {
-        const gl::vec3f oc(gl::pos3f::difference(ray.origin, center));
-#if 0
-        /*
-         * complete analytic version
-         */
-        const float a = gl::vec3f::dot(ray.direction, ray.direction);
-        const float b = 2.0f * gl::vec3f::dot(oc, ray.direction);
-        const float c = gl::vec3f::dot(oc, oc) - (radius * radius);
-        const float delta = ((b * b) - (4.0 * a * c));
-        if(delta > 0.0) {
-            const float hit = ((-b - ::sqrtf(delta)) / (2.0f * a));
-            if((hit < hit_distance) && (hit > distance_min)) {
-                hit_type     = card::kSphereHit;
-                hit_distance = hit;
-                normal       = gl::vec3f::normalize(oc + ray.direction * hit_distance);
-            }
-        }
-#else
-        /*
-         * simplified analytic version
-         */
-        const float b = gl::vec3f::dot(oc, ray.direction);
-        const float c = gl::vec3f::dot(oc, oc) - (radius * radius);
-        const float delta = ((b * b) - c);
-        if(delta > 0.0) {
-            const float hit = (-b - ::sqrtf(delta));
-            if((hit < hit_distance) && (hit > distance_min)) {
-                hit_type     = card::kSphereHit;
-                hit_distance = hit;
-                normal       = gl::vec3f::normalize(oc + ray.direction * hit_distance);
-            }
-        }
-#endif
-    };
-
-    auto hit_spheres = [&]() -> void
-    {
-        for(int row = 0; row < rows; ++row) {
-            uint32_t constexpr lsb = (1 << 0);
-            uint32_t           val = world[row];
-            if(val == 0) {
-                continue;
-            }
-            for(int col = 0; col < cols; ++col) {
-                if(val & lsb) {
-                    const float x = static_cast<float>((cols - col) + col_offset);
-                    const float y = static_cast<float>(0);
-                    const float z = static_cast<float>((rows - row) + row_offset);
-                    const float r = 1.0;
-                    hit_sphere(gl::pos3f(x, y, z), r);
-                }
-                if((val >>= 1) == 0) {
-                    break;
-                }
-            }
-        }
-    };
-
-    hit_floor();
-    hit_spheres();
-
-    position = (ray.origin + (ray.direction * hit_distance));
-
-    return hit_type;
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// card::raytracer::sample
-// ---------------------------------------------------------------------------
-
-namespace card {
-
-gl::col3f raytracer::sample(const gl::ray& ray)
-{
-    gl::pos3f hit_position;
-    gl::vec3f hit_normal;
-    const int hit_type = trace(ray, hit_position, hit_normal);
-
-    if(hit_type == card::kNoHit) {
-        return _sky.color * ::powf(1.0f - ray.direction.z, 4.0f);
-    }
-
-    const gl::vec3f light_direction(gl::vec3f::normalize(gl::pos3f::difference(gl::pos3f(_light.position.x + randomize(), _light.position.y + randomize(), _light.position.z), hit_position)));
-    const gl::vec3f reflection(ray.direction + hit_normal * (gl::vec3f::dot(hit_normal, ray.direction) * -2.0f));
-    float diffusion = gl::vec3f::dot(light_direction, hit_normal);
-
-    /* shadows */ {
-        gl::pos3f dummy;
-        if((diffusion < 0.0f) || trace(gl::ray(hit_position, light_direction), dummy, hit_normal)) {
-            diffusion = 0.0f;
-        }
-    }
-
-    if(hit_type == card::kPlaneHit) {
-        const float x = ::ceilf(hit_position.x * 0.2f);
-        const float y = ::ceilf(hit_position.y * 0.2f);
-        const int tile = static_cast<int>(x + y) & 1;
-        return (tile ? _floor.color1 : _floor.color2) * (diffusion * 0.2f + 0.1f);
-    }
-
-    const float p = ::powf(gl::vec3f::dot(light_direction, reflection) * (diffusion > 0.0f), 99.0f);
-
-    return sample(gl::ray(hit_position, reflection)) * 0.5f + gl::col3f(p, p, p);
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// card::raytracer::raytrace
-// ---------------------------------------------------------------------------
-
-namespace card {
-
-void raytracer::raytrace(ppm::writer& output, const int w, const int h)
-{
-    const int   half_w  = (w / 2);
-    const int   half_h  = (h / 2);
-    const int   samples = 64; // number of ray traced
-    const gl::vec3f right  (gl::vec3f::normalize(gl::vec3f::cross(_camera.direction, _camera.normal)) * _fov);
-    const gl::vec3f down   (gl::vec3f::normalize(gl::vec3f::cross(_camera.direction, right         )) * _fov);
-    const gl::vec3f corner (_camera.direction - (right + down) * 0.5f); // lower right corner
-
-    auto R0 = [&]() -> float
-    {
-        return randomize();
-    };
-
-    auto R1 = [&]() -> float
-    {
-        return randomize() - 0.5f;
-    };
-
-    for(int y = 0; y < h; ++y) {
-        for(int x = 0; x < w; ++x) {
-            gl::col3f color(_ambiant);
-            for(int count = 0; count < samples; ++count) {
-                const gl::vec3f lens ( ( (right * R1())
-                                       + ( down * R1()) ) * _dof );
-
-                const gl::vec3f dir ( (right * (static_cast<float>(x - half_w) + R0()))
-                                    + ( down * (static_cast<float>(y - half_h) + R0()))
-                                    + corner );
-
-                const gl::ray ray(_camera.position + lens, (dir * 16.0f - lens));
-
-                color += sample(ray) * 3.5f;
-            }
-            output.store ( static_cast<int>(color.r)
-                         , static_cast<int>(color.g)
-                         , static_cast<int>(color.b) );
-        }
-    }
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// card::raytracer
-// ---------------------------------------------------------------------------
-
-namespace card {
-
-raytracer::raytracer()
-    : _camera(setup::camera_position, setup::camera_target, setup::camera_top)
-    , _light(setup::light_position)
-    , _floor()
-    , _sky()
-    , _ambiant(setup::ambiant_color)
-    , _fov(setup::fov)
-    , _dof(setup::dof)
+randomizer::randomizer(const float min, const float max)
+    : _generator(::time(nullptr))
+    , _distributor(min, max)
 {
 }
 
@@ -494,6 +257,258 @@ void writer::close()
 }
 
 // ---------------------------------------------------------------------------
+// setup
+// ---------------------------------------------------------------------------
+
+namespace setup {
+
+const uint32_t world[] = {
+#ifndef PONCETO
+    0b00000000000000000000010000000000,
+    0b00000000000000000000010000000000,
+    0b00000000111000011100010000000000,
+    0b00000000000100100010010001000000,
+    0b00000000000100100010010010000000,
+    0b00000000111100111110010100000000,
+    0b00000001000100100000011000000000,
+    0b00000001000100100000010100000000,
+    0b00000000111100011100010010000000
+#else
+    0b00000000000000000000000000000000,
+    0b11100011001001001110111101110110,
+    0b10010100101001010000100000101001,
+    0b10010100101101010000100000101001,
+    0b11100100101101010000111000101001,
+    0b10000100101011010000100000101001,
+    0b10000100101011010000100000101001,
+    0b10000011001001001110111100100110,
+    0b00000000000000000000000000000000
+#endif
+};
+
+#ifndef PONCETO
+const gl::pos3f camera_position (-7.0f, -16.0f,  +8.0f);
+const gl::pos3f camera_target   (-1.0f,   0.0f,  +8.0f);
+const gl::pos3f camera_top      (-7.0f, -16.0f,  +9.0f);
+const gl::pos3f light_position  (+0.5f,  -9.5f, +16.0f);
+const gl::col3f light_color     (+1.0f,  +1.0f,  +1.0f);
+const float     light_power     (+15.0f);
+const gl::col3f ambiant_color   (+0.35f, +0.35f, +0.35f);
+const float fov      = 0.002f;
+const float dof      = 99.0f;
+const float focus    = 16.0f;
+const int samples    = 64;
+const int recursions = 8;
+#else /* front view */
+const gl::pos3f camera_position (-19.0f, -19.0f, +15.0f);
+const gl::pos3f camera_target   ( -5.0f,   0.0f, +11.0f);
+const gl::pos3f camera_top      (-19.0f, -19.0f, +16.0f);
+const gl::pos3f light_position  ( +5.0f, -15.0f, +15.0f);
+const gl::col3f light_color     ( +0.5f,  +0.7f,  +0.9f);
+const float     light_power     (+50.0f);
+const gl::col3f ambiant_color   ( +0.5f,  +0.5f,  +0.5f);
+const float fov      = 0.002f;
+const float dof      = 256.0f;
+const float focus    =  25.0f;
+const int samples    = 384;
+const int recursions = 8;
+#endif
+
+}
+
+// ---------------------------------------------------------------------------
+// card::raytracer
+// ---------------------------------------------------------------------------
+
+namespace card {
+
+raytracer::raytracer()
+    : _camera(setup::camera_position, setup::camera_target, setup::camera_top)
+    , _light(setup::light_position, setup::light_color, setup::light_power)
+    , _floor()
+    , _sky()
+    , _ambiant(setup::ambiant_color)
+    , _fov(setup::fov)
+    , _dof(setup::dof)
+    , _focus(setup::focus)
+    , _samples(setup::samples)
+    , _recursions(setup::recursions)
+    , _random1(-0.50, +0.50)
+    , _random2(-0.75, +0.75)
+{
+}
+
+int raytracer::hit(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal)
+{
+    float constexpr distance_max = 1e9;
+    float constexpr distance_min = 0.01;
+    int   constexpr cols         = 32;
+    int   constexpr rows         = countof(setup::world);
+    int   constexpr col_offset   = -16;
+    int   constexpr row_offset   = +3;
+    int             hit_type     = card::kSkyHit;
+    float           hit_distance = distance_max;
+
+    auto hit_floor = [&]() -> void
+    {
+        const float distance = -ray.origin.z / ray.direction.z;
+        if((distance < hit_distance) && (distance > distance_min)) {
+            hit_type     = card::kFloorHit;
+            hit_distance = distance;
+            normal       = _floor.normal;
+        }
+    };
+
+    auto hit_sphere = [&](const gl::pos3f& center, const float radius) -> void
+    {
+        const gl::vec3f oc(gl::pos3f::difference(ray.origin, center));
+#if 0
+        /*
+         * the complete analytic version
+         */
+        const float a = gl::vec3f::dot(ray.direction, ray.direction);
+        const float b = 2.0f * gl::vec3f::dot(oc, ray.direction);
+        const float c = gl::vec3f::dot(oc, oc) - (radius * radius);
+        const float delta = ((b * b) - (4.0 * a * c));
+        if(delta > 0.0) {
+            const float distance = ((-b - ::sqrtf(delta)) / (2.0f * a));
+            if((distance < hit_distance) && (distance > distance_min)) {
+                hit_type     = card::kSphereHit;
+                hit_distance = distance;
+                normal       = gl::vec3f::normalize(oc + ray.direction * hit_distance);
+            }
+        }
+#else
+        /*
+         * the simplified analytic version
+         */
+        const float b = gl::vec3f::dot(oc, ray.direction);
+        const float c = gl::vec3f::dot(oc, oc) - (radius * radius);
+        const float delta = ((b * b) - c);
+        if(delta > 0.0) {
+            const float distance = (-b - ::sqrtf(delta));
+            if((distance < hit_distance) && (distance > distance_min)) {
+                hit_type     = card::kSphereHit;
+                hit_distance = distance;
+                normal       = gl::vec3f::normalize(oc + ray.direction * hit_distance);
+            }
+        }
+#endif
+    };
+
+    auto hit_spheres = [&]() -> void
+    {
+        for(int row = 0; row < rows; ++row) {
+            uint32_t constexpr lsb = (1 << 0);
+            uint32_t           val = setup::world[row];
+            if(val == 0) {
+                continue;
+            }
+            for(int col = 0; col < cols; ++col) {
+                if(val & lsb) {
+                    const float x = static_cast<float>((cols - col) + col_offset);
+                    const float y = static_cast<float>(0);
+                    const float z = static_cast<float>((rows - row) + row_offset);
+                    const float r = 1.0;
+                    hit_sphere(gl::pos3f(x, y, z), r);
+                }
+                if((val >>= 1) == 0) {
+                    break;
+                }
+            }
+        }
+    };
+
+    hit_floor();
+    hit_spheres();
+
+    position = (ray.origin + (ray.direction * hit_distance));
+
+    return hit_type;
+}
+
+gl::col3f raytracer::trace(const gl::ray& ray, const int recursion)
+{
+    if(recursion <= 0) {
+        return _ambiant;
+    }
+
+    gl::pos3f hit_position;
+    gl::vec3f hit_normal;
+    const int hit_type = hit(ray, hit_position, hit_normal);
+
+    if(hit_type == card::kSkyHit) {
+        return _sky.color * ::powf(1.0f - ray.direction.z, 4.0f);
+    }
+
+    const gl::pos3f light_pos ( (_light.position.x + _random2())
+                              , (_light.position.y + _random2())
+                              , (_light.position.z + _random2()) );
+
+    const gl::vec3f light_direction(gl::vec3f::normalize(gl::pos3f::difference(light_pos, hit_position)));
+    const gl::vec3f reflection(ray.direction + hit_normal * (gl::vec3f::dot(hit_normal, ray.direction) * -2.0f));
+    float distance  = gl::vec3f::length(gl::pos3f::difference(_light.position, hit_position));
+    float attenuation = 1.0f / ::sqrtf(distance / _light.power);
+    float diffusion = gl::vec3f::dot(light_direction, hit_normal);
+
+    /* cast shadows */ {
+        gl::pos3f dummy;
+        if((diffusion < 0.0f) || hit(gl::ray(hit_position, light_direction), dummy, hit_normal)) {
+            diffusion = 0.0f;
+        }
+    }
+
+    if(hit_type == card::kFloorHit) {
+        const float x = ::ceilf(hit_position.x * 0.2f);
+        const float y = ::ceilf(hit_position.y * 0.2f);
+        const gl::col3f color ( static_cast<int>(x + y) & 1
+                              ? _floor.color1
+                              : _floor.color2 );
+        return (color * _ambiant) + (color * _light.color * diffusion * attenuation);
+    }
+
+    const float p = ::powf(gl::vec3f::dot(light_direction, reflection) * (diffusion > 0.0f), 99.0f);
+
+    return trace(gl::ray(hit_position, reflection), (recursion - 1)) * 0.5f + (_light.color * p * attenuation);
+}
+
+void raytracer::render(ppm::writer& output, const int w, const int h)
+{
+    const int   half_w  = (w / 2);
+    const int   half_h  = (h / 2);
+    const int   samples    = _samples;
+    const int   recursions = _recursions;
+    const float scale   = 255.0f / static_cast<float>(samples);
+    const gl::vec3f right  (gl::vec3f::normalize(gl::vec3f::cross(_camera.direction, _camera.normal)) * _fov);
+    const gl::vec3f down   (gl::vec3f::normalize(gl::vec3f::cross(_camera.direction, right         )) * _fov);
+    const gl::vec3f corner (_camera.direction - (right + down) * 0.5f);
+
+    for(int y = 0; y < h; ++y) {
+        for(int x = 0; x < w; ++x) {
+            gl::col3f color;
+            for(int count = samples; count != 0; --count) {
+                const gl::vec3f lens ( ( (right * _random1())
+                                       + ( down * _random1()) ) * _dof );
+
+                const gl::vec3f dir ( (right * (static_cast<float>(x - half_w + 1) + _random1()))
+                                    + ( down * (static_cast<float>(y - half_h + 1) + _random1()))
+                                    + corner );
+
+                const gl::ray ray(_camera.position + lens, (dir * _focus - lens));
+
+                color += trace(ray, recursions);
+            }
+            color *= scale;
+            output.store ( static_cast<int>(color.r)
+                         , static_cast<int>(color.g)
+                         , static_cast<int>(color.b) );
+        }
+    }
+}
+
+}
+
+// ---------------------------------------------------------------------------
 // card::generator
 // ---------------------------------------------------------------------------
 
@@ -545,7 +560,7 @@ void generator::main()
 
         output.open(_card_w, _card_h, 255);
         begin();
-        raytracer.raytrace(output, _card_w, _card_h);
+        raytracer.render(output, _card_w, _card_h);
         end();
         output.close();
     };
