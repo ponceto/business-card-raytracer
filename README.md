@@ -77,9 +77,9 @@ The formatted version was generated with `llvm-format` and some very minor manua
 
 ## HOW TO BUILD
 
-Each version provides a `Makefile` which can be used to build and/or clean the program.
+Each version provides a `Makefile` which can be used to `clean`/`build`/`run` the program.
 
-The toplevel `Makefile` can be used to build and/or clean all the versions available in the `src` directory.
+The toplevel `Makefile` can be used to `clean`/`build`/`run` all the versions available in the `src` directory.
 
 ### BUILD
 
@@ -123,7 +123,7 @@ Example:
 
 ### REFACTORED VERSIONS
 
-You just have to run the generated program. The generated image is by default written in a file named `card.ppm`.
+You just have to run the generated program. The generated image is written by default in a file named `card.ppm`.
 
 Some options are available on the command-line. Add `--help` to display the available options.
 
