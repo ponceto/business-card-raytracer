@@ -49,6 +49,9 @@ CFFLAGS  = --style='{ BasedOnStyle: Microsoft, Language: Cpp, Standard: c++14, S
 
 all : build
 
+run : run_card
+	@echo "=== $@ ok ==="
+
 build : build_card
 	@echo "=== $@ ok ==="
 
@@ -70,6 +73,9 @@ CARD_OBJECTS = \
 CARD_LIBS = \
 	-lm \
 	$(NULL)
+
+run_card : build_card
+	./$(CARD_PROGRAM) > card.ppm
 
 build_card : $(CARD_PROGRAM)
 

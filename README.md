@@ -101,6 +101,16 @@ make clean
 
 ## HOW TO RUN
 
+### WITH MAKE
+
+You just have to call `make` with the `run` target:
+
+```
+make run
+```
+
+The output image is named `card.ppm`.
+
 ### ORIGINAL VERSIONS
 
 You just have to run the generated program and redirect the standard output to a file.

@@ -47,6 +47,9 @@ RMFLAGS  = -f
 
 all : build
 
+run : run_card
+	@echo "=== $@ ok ==="
+
 build : build_card
 	@echo "=== $@ ok ==="
 
@@ -68,6 +71,9 @@ CARD_OBJECTS = \
 CARD_LIBS = \
 	-lm \
 	$(NULL)
+
+run_card : build_card
+	./$(CARD_PROGRAM)
 
 build_card : $(CARD_PROGRAM)
 
