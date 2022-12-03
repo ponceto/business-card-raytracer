@@ -257,23 +257,160 @@ void writer::close()
 }
 
 // ---------------------------------------------------------------------------
+// gl::println
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+template <typename T>
+void println(std::ostream& stream, const T& self);
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::vec3f
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+template <>
+void println<vec3f>(std::ostream& stream, const vec3f& self)
+{
+    stream << "vec3f"
+           << ' ' << '['
+           << ' ' << ']'
+           << std::endl;
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::pos3f
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+template <>
+void println<pos3f>(std::ostream& stream, const pos3f& self)
+{
+    stream << "pos3f"
+           << ' ' << '['
+           << ' ' << ']'
+           << std::endl;
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::col3f
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+template <>
+void println<col3f>(std::ostream& stream, const col3f& self)
+{
+    stream << "col3f"
+           << ' ' << '['
+           << ' ' << ']'
+           << std::endl;
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::camera
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+template <>
+void println<camera>(std::ostream& stream, const camera& self)
+{
+    stream << "camera"
+           << ' ' << '['
+           << ' ' << ']'
+           << std::endl;
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::light
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+template <>
+void println<light>(std::ostream& stream, const light& self)
+{
+    stream << "light"
+           << ' ' << '['
+           << ' ' << ']'
+           << std::endl;
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::floor
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+template <>
+void println<floor>(std::ostream& stream, const floor& self)
+{
+    stream << "floor"
+           << ' ' << '['
+           << ' ' << ']'
+           << std::endl;
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::sky
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+template <>
+void println<sky>(std::ostream& stream, const sky& self)
+{
+    stream << "sky"
+           << ' ' << '['
+           << ' ' << ']'
+           << std::endl;
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// gl::ray
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+template <>
+void println<ray>(std::ostream& stream, const ray& self)
+{
+    stream << "ray"
+           << ' ' << '['
+           << ' ' << ']'
+           << std::endl;
+}
+
+}
+
+// ---------------------------------------------------------------------------
 // setup
 // ---------------------------------------------------------------------------
 
 namespace setup {
 
 const uint32_t world[] = {
-#ifndef PONCETO
-    0b00000000000000000000010000000000,
-    0b00000000000000000000010000000000,
-    0b00000000111000011100010000000000,
-    0b00000000000100100010010001000000,
-    0b00000000000100100010010010000000,
-    0b00000000111100111110010100000000,
-    0b00000001000100100000011000000000,
-    0b00000001000100100000010100000000,
-    0b00000000111100011100010010000000
-#else
+#ifdef PONCETO
     0b00000000000000000000000000000000,
     0b11100011001001001110111101110110,
     0b10010100101001010000100000101001,
@@ -283,36 +420,85 @@ const uint32_t world[] = {
     0b10000100101011010000100000101001,
     0b10000011001001001110111100100110,
     0b00000000000000000000000000000000
+#else /* aek */
+    0b00000000000000000000010000000000,
+    0b00000000000000000000010000000000,
+    0b00000000111000011100010000000000,
+    0b00000000000100100010010001000000,
+    0b00000000000100100010010010000000,
+    0b00000000111100111110010100000000,
+    0b00000001000100100000011000000000,
+    0b00000001000100100000010100000000,
+    0b00000000111100011100010010000000
 #endif
 };
 
-#ifndef PONCETO
-const gl::pos3f camera_position (-7.0f, -16.0f,  +8.0f);
-const gl::pos3f camera_target   (-1.0f,   0.0f,  +8.0f);
-const gl::pos3f camera_top      (-7.0f, -16.0f,  +9.0f);
-const gl::pos3f light_position  (+0.5f,  -9.5f, +16.0f);
-const gl::col3f light_color     (+1.0f,  +1.0f,  +1.0f);
-const float     light_power     (+15.0f);
-const gl::col3f ambiant_color   (+0.35f, +0.35f, +0.35f);
-const float fov      = 0.002f;
-const float dof      = 99.0f;
-const float focus    = 16.0f;
-const int samples    = 64;
-const int recursions = 8;
-#else /* front view */
+#ifdef PONCETO
 const gl::pos3f camera_position (-19.0f, -19.0f, +15.0f);
 const gl::pos3f camera_target   ( -5.0f,   0.0f, +11.0f);
 const gl::pos3f camera_top      (-19.0f, -19.0f, +16.0f);
+const float     camera_fov      (0.002f);
+const float     camera_dof      (256.0f);
+const float     camera_focus    ( 25.0f);
 const gl::pos3f light_position  ( +5.0f, -15.0f, +15.0f);
 const gl::col3f light_color     ( +0.5f,  +0.7f,  +0.9f);
 const float     light_power     (+50.0f);
-const gl::col3f ambiant_color   ( +0.5f,  +0.5f,  +0.5f);
-const float fov      = 0.002f;
-const float dof      = 256.0f;
-const float focus    =  25.0f;
+const gl::pos3f floor_position  ( 0.0f,  0.0f, +0.0f);
+const gl::vec3f floor_normal    ( 0.0f,  0.0f, +1.0f);
+const gl::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
+const gl::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
+const gl::col3f sky_color       (+0.70f, +0.60f, +1.00f);
+const gl::col3f ambient_color   (+0.50f, +0.50f, +0.50f);
+
 const int samples    = 384;
 const int recursions = 8;
+#else /* aek */
+const gl::pos3f camera_position (-7.0f, -16.0f,  +8.0f);
+const gl::pos3f camera_target   (-1.0f,   0.0f,  +8.0f);
+const gl::pos3f camera_top      (-7.0f, -16.0f,  +9.0f);
+const float     camera_fov      (0.002f);
+const float     camera_dof      ( 99.0f);
+const float     camera_focus    ( 16.0f);
+const gl::pos3f light_position  ( +0.5f,  -9.5f, +16.0f);
+const gl::col3f light_color     (+1.00f, +1.00f, +1.00f);
+const float     light_power     (+15.0f);
+const gl::pos3f floor_position  ( 0.0f,  0.0f, +0.0f);
+const gl::vec3f floor_normal    ( 0.0f,  0.0f, +1.0f);
+const gl::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
+const gl::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
+const gl::col3f sky_color       (+0.70f, +0.60f, +1.00f);
+const gl::col3f ambient_color   (+0.35f, +0.35f, +0.35f);
+
+const int samples    = 64;
+const int recursions = 8;
 #endif
+
+}
+
+// ---------------------------------------------------------------------------
+// card::scene
+// ---------------------------------------------------------------------------
+
+namespace card {
+
+scene::scene()
+    : scene ( gl::camera ( setup::camera_position
+                         , setup::camera_target
+                         , setup::camera_top
+                         , setup::camera_fov
+                         , setup::camera_dof
+                         , setup::camera_focus )
+            , gl::light  ( setup::light_position
+                         , setup::light_color
+                         , setup::light_power )
+            , gl::floor  ( setup::floor_position
+                         , setup::floor_normal
+                         , setup::floor_color1
+                         , setup::floor_color2 )
+            , gl::sky    ( setup::sky_color )
+            , gl::col3f  ( setup::ambient_color ) )
+{
+}
 
 }
 
@@ -322,19 +508,11 @@ const int recursions = 8;
 
 namespace card {
 
-raytracer::raytracer()
-    : _camera(setup::camera_position, setup::camera_target, setup::camera_top)
-    , _light(setup::light_position, setup::light_color, setup::light_power)
-    , _floor()
-    , _sky()
-    , _ambiant(setup::ambiant_color)
-    , _fov(setup::fov)
-    , _dof(setup::dof)
-    , _focus(setup::focus)
-    , _samples(setup::samples)
-    , _recursions(setup::recursions)
+raytracer::raytracer(base::console& console, card::scene& scene)
+    : _console(console)
     , _random1(-0.50, +0.50)
     , _random2(-0.75, +0.75)
+    , _scene(scene)
 {
 }
 
@@ -355,7 +533,7 @@ int raytracer::hit(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal)
         if((distance < hit_distance) && (distance > distance_min)) {
             hit_type     = card::kFloorHit;
             hit_distance = distance;
-            normal       = _floor.normal;
+            normal       = _scene.floor().normal;
         }
     };
 
@@ -429,8 +607,13 @@ int raytracer::hit(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal)
 
 gl::col3f raytracer::trace(const gl::ray& ray, const int recursion)
 {
+    const gl::light& light  (_scene.light());
+    const gl::floor& floor  (_scene.floor());
+    const gl::sky&   sky    (_scene.sky());
+    const gl::col3f& ambient(_scene.ambient());
+
     if(recursion <= 0) {
-        return _ambiant;
+        return ambient;
     }
 
     gl::pos3f hit_position;
@@ -438,17 +621,17 @@ gl::col3f raytracer::trace(const gl::ray& ray, const int recursion)
     const int hit_type = hit(ray, hit_position, hit_normal);
 
     if(hit_type == card::kSkyHit) {
-        return _sky.color * ::powf(1.0f - ray.direction.z, 4.0f);
+        return sky.color * ::powf(1.0f - ray.direction.z, 4.0f);
     }
 
-    const gl::pos3f light_pos ( (_light.position.x + _random2())
-                              , (_light.position.y + _random2())
-                              , (_light.position.z + _random2()) );
+    const gl::pos3f light_pos ( (light.position.x + _random2())
+                              , (light.position.y + _random2())
+                              , (light.position.z + _random2()) );
 
     const gl::vec3f light_direction(gl::vec3f::normalize(gl::pos3f::difference(light_pos, hit_position)));
     const gl::vec3f reflection(ray.direction + hit_normal * (gl::vec3f::dot(hit_normal, ray.direction) * -2.0f));
-    float distance  = gl::vec3f::length(gl::pos3f::difference(_light.position, hit_position));
-    float attenuation = 1.0f / ::sqrtf(distance / _light.power);
+    float distance  = gl::vec3f::length(gl::pos3f::difference(light.position, hit_position));
+    float attenuation = 1.0f / ::sqrtf(distance / light.power);
     float diffusion = gl::vec3f::dot(light_direction, hit_normal);
 
     /* cast shadows */ {
@@ -462,39 +645,38 @@ gl::col3f raytracer::trace(const gl::ray& ray, const int recursion)
         const float x = ::ceilf(hit_position.x * 0.2f);
         const float y = ::ceilf(hit_position.y * 0.2f);
         const gl::col3f color ( static_cast<int>(x + y) & 1
-                              ? _floor.color1
-                              : _floor.color2 );
-        return (color * _ambiant) + (color * _light.color * diffusion * attenuation);
+                              ? floor.color1
+                              : floor.color2 );
+        return (color * ambient) + (color * light.color * diffusion * attenuation);
     }
 
     const float p = ::powf(gl::vec3f::dot(light_direction, reflection) * (diffusion > 0.0f), 99.0f);
 
-    return trace(gl::ray(hit_position, reflection), (recursion - 1)) * 0.5f + (_light.color * p * attenuation);
+    return trace(gl::ray(hit_position, reflection), (recursion - 1)) * 0.5f + (light.color * p * attenuation);
 }
 
-void raytracer::render(ppm::writer& output, const int w, const int h)
+void raytracer::render(ppm::writer& output, const int w, const int h, const int samples, const int recursions)
 {
-    const int   half_w  = (w / 2);
-    const int   half_h  = (h / 2);
-    const int   samples    = _samples;
-    const int   recursions = _recursions;
-    const float scale   = 255.0f / static_cast<float>(samples);
-    const gl::vec3f right  (gl::vec3f::normalize(gl::vec3f::cross(_camera.direction, _camera.normal)) * _fov);
-    const gl::vec3f down   (gl::vec3f::normalize(gl::vec3f::cross(_camera.direction, right         )) * _fov);
-    const gl::vec3f corner (_camera.direction - (right + down) * 0.5f);
+    const int   half_w = (w / 2);
+    const int   half_h = (h / 2);
+    const float scale  = 255.0f / static_cast<float>(samples);
+    const gl::camera& camera(_scene.camera());
+    const gl::vec3f   right (gl::vec3f::normalize(gl::vec3f::cross(camera.direction, camera.normal)) * camera.fov);
+    const gl::vec3f   down  (gl::vec3f::normalize(gl::vec3f::cross(camera.direction, right        )) * camera.fov);
+    const gl::vec3f   corner(camera.direction - (right + down) * 0.5f);
 
     for(int y = 0; y < h; ++y) {
         for(int x = 0; x < w; ++x) {
             gl::col3f color;
             for(int count = samples; count != 0; --count) {
                 const gl::vec3f lens ( ( (right * _random1())
-                                       + ( down * _random1()) ) * _dof );
+                                       + ( down * _random1()) ) * camera.dof );
 
                 const gl::vec3f dir ( (right * (static_cast<float>(x - half_w + 1) + _random1()))
                                     + ( down * (static_cast<float>(y - half_h + 1) + _random1()))
                                     + corner );
 
-                const gl::ray ray(_camera.position + lens, (dir * _focus - lens));
+                const gl::ray ray(camera.position + lens, (dir * camera.focus - lens));
 
                 color += trace(ray, recursions);
             }
@@ -521,6 +703,8 @@ generator::generator(int argc, char* argv[])
     , _output("card.ppm")
     , _card_w(512)
     , _card_h(512)
+    , _samples(64)
+    , _recursions(8)
 {
 }
 
@@ -543,7 +727,7 @@ void generator::main()
 
     auto begin = [&]() -> void
     {
-        cout() << profiler.name() << ':' << ' ' << "processing ..." << std::endl;
+        cout() << profiler.name() << ':' << ' ' << "rendering ..." << std::endl;
         profiler.reset();
     };
 
@@ -556,11 +740,12 @@ void generator::main()
     auto render = [&]() -> void
     {
         ppm::writer output(_output);
-        card::raytracer raytracer;
+        card::scene scene;
+        card::raytracer raytracer(*this, scene);
 
         output.open(_card_w, _card_h, 255);
         begin();
-        raytracer.render(output, _card_w, _card_h);
+        raytracer.render(output, _card_w, _card_h, _samples, _recursions);
         end();
         output.close();
     };
@@ -627,6 +812,16 @@ bool generator::parse()
         _card_h = get_int_val(argument);
     };
 
+    auto set_samples = [&](const std::string& argument) -> void
+    {
+        _samples = get_int_val(argument);
+    };
+
+    auto set_recursions = [&](const std::string& argument) -> void
+    {
+        _recursions = get_int_val(argument);
+    };
+
     auto invalid_argument = [&](const std::string& argument) -> void
     {
         throw std::runtime_error(std::string("invalid argument") + ' ' + '<' + argument + '>');
@@ -654,6 +849,12 @@ bool generator::parse()
             else if(has_option(argument, "--height=")) {
                 set_card_h(argument);
             }
+            else if(has_option(argument, "--samples=")) {
+                set_samples(argument);
+            }
+            else if(has_option(argument, "--recursions=")) {
+                set_recursions(argument);
+            }
             else {
                 invalid_argument(argument);
             }
@@ -677,6 +878,8 @@ void generator::usage()
     cout() << "    --output={path}         the output filename"     << std::endl;
     cout() << "    --width={int}           the card width"          << std::endl;
     cout() << "    --height={int}          the card height"         << std::endl;
+    cout() << "    --samples={int}         samples per pixel"       << std::endl;
+    cout() << "    --recursions={int}      max recursions level"    << std::endl;
     cout() << ""                                                    << std::endl;
 }
 

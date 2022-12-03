@@ -127,30 +127,10 @@ You just have to run the generated program. The generated image is written by de
 
 Some options are available on the command-line. Add `--help` to display the available options.
 
-```
-Usage: card.bin [OPTIONS...]
-
-The Business Card Raytracer
-
-Options:
-
-    --help                  display this help
-    --output={path}         the output filename
-    --width={int}           the card width
-    --height={int}          the card height
+Example:
 
 ```
-
-The following example will generate a file named `card.ppm`:
-
-```
-./card.bin
-```
-
-The following example will generate a file named `output.ppm`:
-
-```
-./card.bin --output=output.ppm
+./card.bin [OPTIONS...]
 ```
 
 ### REWRITTEN VERSION

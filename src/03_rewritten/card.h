@@ -556,30 +556,42 @@ namespace gl {
 class camera
 {
 public:
-    camera()
-        : camera ( pos3f(0.0f, -1.0f, +1.0f)
-                 , vec3f(0.0f, +1.0f, +1.0f)
-                 , vec3f(0.0f,  0.0f, +1.0f) )
-    {
-    }
-
-    camera(const pos3f& camera_position, const pos3f& camera_target, const pos3f& camera_up)
+    camera ( const pos3f& camera_position
+           , const pos3f& camera_target
+           , const pos3f& camera_up
+           , const float  camera_fov
+           , const float  camera_dof
+           , const float  camera_focus )
         : camera ( camera_position
                  , pos3f::difference(camera_target, camera_position)
-                 , pos3f::difference(camera_up    , camera_position) )
+                 , pos3f::difference(camera_up    , camera_position)
+                 , camera_fov
+                 , camera_dof
+                 , camera_focus )
     {
     }
 
-    camera(const pos3f& camera_position, const vec3f& camera_direction, const vec3f& camera_normal)
+    camera ( const pos3f& camera_position
+           , const vec3f& camera_direction
+           , const vec3f& camera_normal
+           , const float  camera_fov
+           , const float  camera_dof
+           , const float  camera_focus )
         : position(camera_position)
         , direction(vec3f::normalize(camera_direction))
         , normal(vec3f::normalize(camera_normal))
+        , fov(camera_fov)
+        , dof(camera_dof)
+        , focus(camera_focus)
     {
     }
 
     pos3f position;
     vec3f direction;
     vec3f normal;
+    float fov;
+    float dof;
+    float focus;
 };
 
 }
@@ -593,17 +605,12 @@ namespace gl {
 class light
 {
 public:
-    light()
-        : light ( pos3f(-100.0f, -100.0f, +100.0f)
-                , col3f(  +1.0f,   +1.0f,   +1.0f)
-                , 1.0f )
-    {
-    }
-
-    light(const pos3f& light_position, const col3f& light_color, const float power)
+    light ( const pos3f& light_position
+          , const col3f& light_color
+          , const float  light_power )
         : position(light_position)
         , color(light_color)
-        , power(power)
+        , power(light_power)
     {
     }
 
@@ -623,22 +630,14 @@ namespace gl {
 class floor
 {
 public:
-    floor()
-        : floor ( pos3f( 0.0f,  0.0f, +0.0f)
-                , vec3f( 0.0f,  0.0f, +1.0f)
-                , col3f(+1.0f, +0.3f, +0.3f)
-                , col3f(+1.0f, +1.0f, +1.0f) )
-    {
-    }
-
-    floor ( const pos3f& plane_position
-          , const vec3f& plane_normal
-          , const col3f& plane_color1
-          , const col3f& plane_color2 )
-        : position(plane_position)
-        , normal(vec3f::normalize(plane_normal))
-        , color1(plane_color1)
-        , color2(plane_color2)
+    floor ( const pos3f& floor_position
+          , const vec3f& floor_normal
+          , const col3f& floor_color1
+          , const col3f& floor_color2 )
+        : position(floor_position)
+        , normal(vec3f::normalize(floor_normal))
+        , color1(floor_color1)
+        , color2(floor_color2)
     {
     }
 
@@ -659,13 +658,8 @@ namespace gl {
 class sky
 {
 public:
-    sky()
-        : sky(col3f(+0.7f, +0.6f, +1.0f))
-    {
-    }
-
-    sky(const col3f& c)
-        : color(c)
+    sky(const col3f& sky_color)
+        : color(sky_color)
     {
     }
 
@@ -696,6 +690,67 @@ public:
 }
 
 // ---------------------------------------------------------------------------
+// card::scene
+// ---------------------------------------------------------------------------
+
+namespace card {
+
+class scene
+{
+public:
+    scene();
+
+    scene ( const gl::camera& scene_camera
+          , const gl::light&  scene_light
+          , const gl::floor&  scene_floor
+          , const gl::sky&    scene_sky
+          , const gl::col3f&  scene_ambient )
+        : _camera(scene_camera)
+        , _light(scene_light)
+        , _floor(scene_floor)
+        , _sky(scene_sky)
+        , _ambient(scene_ambient)
+    {
+    }
+
+    virtual ~scene() = default;
+
+    auto camera() const -> const gl::camera&
+    {
+        return _camera;
+    }
+
+    auto light() const -> const gl::light&
+    {
+        return _light;
+    }
+
+    auto floor() const -> const gl::floor&
+    {
+        return _floor;
+    }
+
+    auto sky() const -> const gl::sky&
+    {
+        return _sky;
+    }
+
+    auto ambient() const -> const gl::col3f&
+    {
+        return _ambient;
+    }
+
+protected:
+    gl::camera _camera;
+    gl::light  _light;
+    gl::floor  _floor;
+    gl::sky    _sky;
+    gl::col3f  _ambient;
+};
+
+}
+
+// ---------------------------------------------------------------------------
 // card::HitType
 // ---------------------------------------------------------------------------
 
@@ -719,11 +774,11 @@ namespace card {
 class raytracer
 {
 public:
-    raytracer();
+    raytracer(base::console& console, card::scene& scene);
 
     virtual ~raytracer() = default;
 
-    void render(ppm::writer&, const int w, const int h);
+    void render(ppm::writer&, const int w, const int h, const int samples, const int recursions);
 
 protected:
     gl::col3f trace(const gl::ray& ray, const int depth);
@@ -731,18 +786,10 @@ protected:
     int hit(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal);
 
 protected:
-    const gl::camera   _camera;
-    const gl::light    _light;
-    const gl::floor    _floor;
-    const gl::sky      _sky;
-    const gl::col3f    _ambiant;
-    const float        _fov;
-    const float        _dof;
-    const float        _focus;
-    const int          _samples;
-    const int          _recursions;
-    base::randomizer   _random1;
-    base::randomizer   _random2;
+    base::console&   _console;
+    base::randomizer _random1;
+    base::randomizer _random2;
+    card::scene&     _scene;
 };
 
 }
@@ -773,6 +820,8 @@ protected:
     std::string _output;
     int         _card_w;
     int         _card_h;
+    int         _samples;
+    int         _recursions;
 };
 
 }
