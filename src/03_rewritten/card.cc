@@ -449,9 +449,6 @@ const gl::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
 const gl::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
 const gl::col3f sky_color       (+0.70f, +0.60f, +1.00f);
 const gl::col3f ambient_color   (+0.50f, +0.50f, +0.50f);
-
-const int samples    = 384;
-const int recursions = 8;
 #else /* aek */
 const gl::pos3f camera_position (-7.0f, -16.0f,  +8.0f);
 const gl::pos3f camera_target   (-1.0f,   0.0f,  +8.0f);
@@ -468,9 +465,6 @@ const gl::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
 const gl::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
 const gl::col3f sky_color       (+0.70f, +0.60f, +1.00f);
 const gl::col3f ambient_color   (+0.35f, +0.35f, +0.35f);
-
-const int samples    = 64;
-const int recursions = 8;
 #endif
 
 }
