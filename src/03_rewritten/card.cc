@@ -862,19 +862,19 @@ bool generator::parse()
 
 void generator::usage()
 {
-    cout() << "Usage:" << ' ' << _program << ' ' << "[OPTIONS...]"  << std::endl;
-    cout() << ""                                                    << std::endl;
-    cout() << "The Business Card Raytracer"                         << std::endl;
-    cout() << ""                                                    << std::endl;
-    cout() << "Options:"                                            << std::endl;
-    cout() << ""                                                    << std::endl;
-    cout() << "    --help                  display this help"       << std::endl;
-    cout() << "    --output={path}         the output filename"     << std::endl;
-    cout() << "    --width={int}           the card width"          << std::endl;
-    cout() << "    --height={int}          the card height"         << std::endl;
-    cout() << "    --samples={int}         samples per pixel"       << std::endl;
-    cout() << "    --recursions={int}      max recursions level"    << std::endl;
-    cout() << ""                                                    << std::endl;
+    cout() << "Usage:" << ' ' << _program << ' ' << "[OPTIONS...]"   << std::endl;
+    cout() << ""                                                     << std::endl;
+    cout() << "The Business Card Raytracer"                          << std::endl;
+    cout() << ""                                                     << std::endl;
+    cout() << "Options:"                                             << std::endl;
+    cout() << ""                                                     << std::endl;
+    cout() << "    --help                  display this help"        << std::endl;
+    cout() << "    --output={path}         the output filename"      << std::endl;
+    cout() << "    --width={int}           the card width"           << std::endl;
+    cout() << "    --height={int}          the card height"          << std::endl;
+    cout() << "    --samples={int}         samples per pixel"        << std::endl;
+    cout() << "    --recursions={int}      maximum recursions level" << std::endl;
+    cout() << ""                                                     << std::endl;
 }
 
 }

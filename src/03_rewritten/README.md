@@ -48,7 +48,7 @@ Options:
     --width={int}           the card width
     --height={int}          the card height
     --samples={int}         samples per pixel
-    --recursions={int}      max recursions level
+    --recursions={int}      maximum recursions level
 
 ```
 
