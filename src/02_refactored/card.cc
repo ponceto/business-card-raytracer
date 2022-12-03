@@ -411,7 +411,7 @@ void generator::main()
 
     auto begin = [&]() -> void
     {
-        cout() << profiler.name() << ':' << ' ' << "processing ..." << std::endl;
+        cout() << profiler.name() << ':' << ' ' << "rendering ..." << std::endl;
         profiler.reset();
     };
 
