@@ -257,153 +257,6 @@ void writer::close()
 }
 
 // ---------------------------------------------------------------------------
-// gl::println
-// ---------------------------------------------------------------------------
-
-namespace gl {
-
-template <typename T>
-void println(std::ostream& stream, const T& self);
-
-}
-
-// ---------------------------------------------------------------------------
-// gl::vec3f
-// ---------------------------------------------------------------------------
-
-namespace gl {
-
-template <>
-void println<vec3f>(std::ostream& stream, const vec3f& self)
-{
-    stream << "vec3f"
-           << ' ' << '['
-           << ' ' << ']'
-           << std::endl;
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// gl::pos3f
-// ---------------------------------------------------------------------------
-
-namespace gl {
-
-template <>
-void println<pos3f>(std::ostream& stream, const pos3f& self)
-{
-    stream << "pos3f"
-           << ' ' << '['
-           << ' ' << ']'
-           << std::endl;
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// gl::col3f
-// ---------------------------------------------------------------------------
-
-namespace gl {
-
-template <>
-void println<col3f>(std::ostream& stream, const col3f& self)
-{
-    stream << "col3f"
-           << ' ' << '['
-           << ' ' << ']'
-           << std::endl;
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// gl::camera
-// ---------------------------------------------------------------------------
-
-namespace gl {
-
-template <>
-void println<camera>(std::ostream& stream, const camera& self)
-{
-    stream << "camera"
-           << ' ' << '['
-           << ' ' << ']'
-           << std::endl;
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// gl::light
-// ---------------------------------------------------------------------------
-
-namespace gl {
-
-template <>
-void println<light>(std::ostream& stream, const light& self)
-{
-    stream << "light"
-           << ' ' << '['
-           << ' ' << ']'
-           << std::endl;
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// gl::floor
-// ---------------------------------------------------------------------------
-
-namespace gl {
-
-template <>
-void println<floor>(std::ostream& stream, const floor& self)
-{
-    stream << "floor"
-           << ' ' << '['
-           << ' ' << ']'
-           << std::endl;
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// gl::sky
-// ---------------------------------------------------------------------------
-
-namespace gl {
-
-template <>
-void println<sky>(std::ostream& stream, const sky& self)
-{
-    stream << "sky"
-           << ' ' << '['
-           << ' ' << ']'
-           << std::endl;
-}
-
-}
-
-// ---------------------------------------------------------------------------
-// gl::ray
-// ---------------------------------------------------------------------------
-
-namespace gl {
-
-template <>
-void println<ray>(std::ostream& stream, const ray& self)
-{
-    stream << "ray"
-           << ' ' << '['
-           << ' ' << ']'
-           << std::endl;
-}
-
-}
-
-// ---------------------------------------------------------------------------
 // setup
 // ---------------------------------------------------------------------------
 
@@ -476,20 +329,20 @@ const gl::col3f ambient_color   (+0.35f, +0.35f, +0.35f);
 namespace card {
 
 scene::scene()
-    : scene ( gl::camera ( setup::camera_position
+    : scene ( rt::camera ( setup::camera_position
                          , setup::camera_target
                          , setup::camera_top
                          , setup::camera_fov
                          , setup::camera_dof
                          , setup::camera_focus )
-            , gl::light  ( setup::light_position
+            , rt::light  ( setup::light_position
                          , setup::light_color
                          , setup::light_power )
-            , gl::floor  ( setup::floor_position
+            , rt::floor  ( setup::floor_position
                          , setup::floor_normal
                          , setup::floor_color1
                          , setup::floor_color2 )
-            , gl::sky    ( setup::sky_color )
+            , rt::sky    ( setup::sky_color )
             , gl::col3f  ( setup::ambient_color ) )
 {
 }
@@ -510,24 +363,15 @@ raytracer::raytracer(base::console& console, card::scene& scene)
 {
 }
 
-int raytracer::hit(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal)
+int raytracer::hit(const rt::ray& ray, rt::hit_result& result)
 {
-    float constexpr distance_max = 1e9;
-    float constexpr distance_min = 0.01;
-    int   constexpr cols         = 32;
-    int   constexpr rows         = countof(setup::world);
-    int   constexpr col_offset   = -16;
-    int   constexpr row_offset   = +3;
-    int             hit_type     = card::kSkyHit;
-    float           hit_distance = distance_max;
-
     auto hit_floor = [&]() -> void
     {
         const float distance = -ray.origin.z / ray.direction.z;
-        if((distance < hit_distance) && (distance > distance_min)) {
-            hit_type     = card::kFloorHit;
-            hit_distance = distance;
-            normal       = _scene.floor().normal;
+        if((distance < result.distance) && (distance > result.distance_min)) {
+            result.type     = rt::hit_result::FLOOR_HIT;
+            result.distance = distance;
+            result.normal   = _scene.floor().normal;
         }
     };
 
@@ -544,10 +388,10 @@ int raytracer::hit(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal)
         const float delta = ((b * b) - (4.0 * a * c));
         if(delta > 0.0) {
             const float distance = ((-b - ::sqrtf(delta)) / (2.0f * a));
-            if((distance < hit_distance) && (distance > distance_min)) {
-                hit_type     = card::kSphereHit;
-                hit_distance = distance;
-                normal       = gl::vec3f::normalize(oc + ray.direction * hit_distance);
+            if((distance < result.distance) && (distance > result.distance_min)) {
+                result.type     = rt::hit_result::SPHERE_HIT;
+                result.distance = distance;
+                result.normal   = gl::vec3f::normalize(oc + ray.direction * result.distance);
             }
         }
 #else
@@ -559,10 +403,10 @@ int raytracer::hit(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal)
         const float delta = ((b * b) - c);
         if(delta > 0.0) {
             const float distance = (-b - ::sqrtf(delta));
-            if((distance < hit_distance) && (distance > distance_min)) {
-                hit_type     = card::kSphereHit;
-                hit_distance = distance;
-                normal       = gl::vec3f::normalize(oc + ray.direction * hit_distance);
+            if((distance < result.distance) && (distance > result.distance_min)) {
+                result.type     = rt::hit_result::SPHERE_HIT;
+                result.distance = distance;
+                result.normal   = gl::vec3f::normalize(oc + ray.direction * result.distance);
             }
         }
 #endif
@@ -570,6 +414,11 @@ int raytracer::hit(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal)
 
     auto hit_spheres = [&]() -> void
     {
+        constexpr int cols       = 32;
+        constexpr int rows       = countof(setup::world);
+        constexpr int col_offset = -16;
+        constexpr int row_offset = +3;
+
         for(int row = 0; row < rows; ++row) {
             uint32_t constexpr lsb = (1 << 0);
             uint32_t           val = setup::world[row];
@@ -594,27 +443,24 @@ int raytracer::hit(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal)
     hit_floor();
     hit_spheres();
 
-    position = (ray.origin + (ray.direction * hit_distance));
+    result.position = (ray.origin + (ray.direction * result.distance));
 
-    return hit_type;
+    return result.type;
 }
 
-gl::col3f raytracer::trace(const gl::ray& ray, const int recursion)
+gl::col3f raytracer::trace(const rt::ray& ray, const int recursion)
 {
-    const gl::light& light  (_scene.light());
-    const gl::floor& floor  (_scene.floor());
-    const gl::sky&   sky    (_scene.sky());
+    const rt::light& light  (_scene.light());
+    const rt::floor& floor  (_scene.floor());
+    const rt::sky&   sky    (_scene.sky());
     const gl::col3f& ambient(_scene.ambient());
 
     if(recursion <= 0) {
         return ambient;
     }
 
-    gl::pos3f hit_position;
-    gl::vec3f hit_normal;
-    const int hit_type = hit(ray, hit_position, hit_normal);
-
-    if(hit_type == card::kSkyHit) {
+    rt::hit_result result;
+    if(hit(ray, result) == rt::hit_result::SKY_HIT) {
         return sky.color * ::powf(1.0f - ray.direction.z, 4.0f);
     }
 
@@ -622,22 +468,22 @@ gl::col3f raytracer::trace(const gl::ray& ray, const int recursion)
                               , (light.position.y + _random2())
                               , (light.position.z + _random2()) );
 
-    const gl::vec3f light_direction(gl::vec3f::normalize(gl::pos3f::difference(light_pos, hit_position)));
-    const gl::vec3f reflection(ray.direction + hit_normal * (gl::vec3f::dot(hit_normal, ray.direction) * -2.0f));
-    float distance  = gl::vec3f::length(gl::pos3f::difference(light.position, hit_position));
+    const gl::vec3f light_direction(gl::vec3f::normalize(gl::pos3f::difference(light_pos, result.position)));
+    const gl::vec3f reflection(ray.direction + result.normal * (gl::vec3f::dot(result.normal, ray.direction) * -2.0f));
+    float distance    = gl::vec3f::length(gl::pos3f::difference(light.position, result.position));
     float attenuation = 1.0f / ::sqrtf(distance / light.power);
-    float diffusion = gl::vec3f::dot(light_direction, hit_normal);
+    float diffusion   = gl::vec3f::dot(light_direction, result.normal);
 
     /* cast shadows */ {
-        gl::pos3f dummy;
-        if((diffusion < 0.0f) || hit(gl::ray(hit_position, light_direction), dummy, hit_normal)) {
+        rt::hit_result dummy;
+        if((diffusion < 0.0f) || hit(rt::ray(result.position, light_direction), dummy)) {
             diffusion = 0.0f;
         }
     }
 
-    if(hit_type == card::kFloorHit) {
-        const float x = ::ceilf(hit_position.x * 0.2f);
-        const float y = ::ceilf(hit_position.y * 0.2f);
+    if(result.type == rt::hit_result::FLOOR_HIT) {
+        const float x = ::ceilf(result.position.x * 0.2f);
+        const float y = ::ceilf(result.position.y * 0.2f);
         const gl::col3f color ( static_cast<int>(x + y) & 1
                               ? floor.color1
                               : floor.color2 );
@@ -646,7 +492,7 @@ gl::col3f raytracer::trace(const gl::ray& ray, const int recursion)
 
     const float p = ::powf(gl::vec3f::dot(light_direction, reflection) * (diffusion > 0.0f), 99.0f);
 
-    return trace(gl::ray(hit_position, reflection), (recursion - 1)) * 0.5f + (light.color * p * attenuation);
+    return trace(rt::ray(result.position, reflection), (recursion - 1)) * 0.5f + (light.color * p * attenuation);
 }
 
 void raytracer::render(ppm::writer& output, const int w, const int h, const int samples, const int recursions)
@@ -654,7 +500,7 @@ void raytracer::render(ppm::writer& output, const int w, const int h, const int 
     const int   half_w = (w / 2);
     const int   half_h = (h / 2);
     const float scale  = 255.0f / static_cast<float>(samples);
-    const gl::camera& camera(_scene.camera());
+    const rt::camera& camera(_scene.camera());
     const gl::vec3f   right (gl::vec3f::normalize(gl::vec3f::cross(camera.direction, camera.normal)) * camera.fov);
     const gl::vec3f   down  (gl::vec3f::normalize(gl::vec3f::cross(camera.direction, right        )) * camera.fov);
     const gl::vec3f   corner(camera.direction - (right + down) * 0.5f);
@@ -670,7 +516,7 @@ void raytracer::render(ppm::writer& output, const int w, const int h, const int 
                                     + ( down * (static_cast<float>(y - half_h + 1) + _random1()))
                                     + corner );
 
-                const gl::ray ray(camera.position + lens, (dir * camera.focus - lens));
+                const rt::ray ray(camera.position + lens, (dir * camera.focus - lens));
 
                 color += trace(ray, recursions);
             }

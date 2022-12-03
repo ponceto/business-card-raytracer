@@ -221,14 +221,18 @@ class vec3f
 {
 public:
     vec3f()
-        : vec3f(0.0f, 0.0f, 0.0f)
+        : vec3f ( 0.0f
+                , 0.0f
+                , 0.0f )
     {
     }
 
-    vec3f(const float vx, const float vy, const float vz)
-        : x(vx)
-        , y(vy)
-        , z(vz)
+    vec3f ( const float vec_x
+          , const float vec_y
+          , const float vec_z )
+        : x(vec_x)
+        , y(vec_y)
+        , z(vec_z)
     {
     }
 
@@ -353,14 +357,18 @@ class pos3f
 {
 public:
     pos3f()
-        : pos3f(0.0f, 0.0f, 0.0f)
+        : pos3f ( 0.0f
+                , 0.0f
+                , 0.0f )
     {
     }
 
-    pos3f(const float px, const float py, const float pz)
-        : x(px)
-        , y(py)
-        , z(pz)
+    pos3f ( const float pos_x
+          , const float pos_y
+          , const float pos_z )
+        : x(pos_x)
+        , y(pos_y)
+        , z(pos_z)
     {
     }
 
@@ -462,14 +470,18 @@ class col3f
 {
 public:
     col3f()
-        : col3f(0.0f, 0.0f, 0.0f)
+        : col3f ( 0.0f
+                , 0.0f
+                , 0.0f )
     {
     }
 
-    col3f(const float cr, const float cg, const float cb)
-        : r(cr)
-        , g(cg)
-        , b(cb)
+    col3f ( const float color_r
+          , const float color_g
+          , const float color_b )
+        : r(color_r)
+        , g(color_g)
+        , b(color_b)
     {
     }
 
@@ -548,143 +560,175 @@ public:
 }
 
 // ---------------------------------------------------------------------------
-// gl::camera
+// rt::hit_result
 // ---------------------------------------------------------------------------
 
-namespace gl {
+namespace rt {
+
+class hit_result
+{
+public:
+    hit_result()
+        : type(SKY_HIT)
+        , distance(distance_max)
+        , position()
+        , normal()
+    {
+    }
+
+    static constexpr float distance_max = std::numeric_limits<float>::max();
+    static constexpr float distance_min = std::numeric_limits<float>::epsilon();
+    static constexpr int   SKY_HIT      = 0;
+    static constexpr int   FLOOR_HIT    = 1;
+    static constexpr int   SPHERE_HIT   = 2;
+
+    int       type;
+    float     distance;
+    gl::pos3f position;
+    gl::vec3f normal;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::ray
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+class ray
+{
+public:
+    ray ( const gl::pos3f& ray_origin
+        , const gl::vec3f& ray_direction )
+        : origin(ray_origin)
+        , direction(gl::vec3f::normalize(ray_direction))
+    {
+    }
+
+    gl::pos3f origin;
+    gl::vec3f direction;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::camera
+// ---------------------------------------------------------------------------
+
+namespace rt {
 
 class camera
 {
 public:
-    camera ( const pos3f& camera_position
-           , const pos3f& camera_target
-           , const pos3f& camera_up
-           , const float  camera_fov
-           , const float  camera_dof
-           , const float  camera_focus )
+    camera ( const gl::pos3f& camera_position
+           , const gl::pos3f& camera_target
+           , const gl::pos3f& camera_up
+           , const float      camera_fov
+           , const float      camera_dof
+           , const float      camera_focus )
         : camera ( camera_position
-                 , pos3f::difference(camera_target, camera_position)
-                 , pos3f::difference(camera_up    , camera_position)
+                 , gl::pos3f::difference(camera_target, camera_position)
+                 , gl::pos3f::difference(camera_up    , camera_position)
                  , camera_fov
                  , camera_dof
                  , camera_focus )
     {
     }
 
-    camera ( const pos3f& camera_position
-           , const vec3f& camera_direction
-           , const vec3f& camera_normal
-           , const float  camera_fov
-           , const float  camera_dof
-           , const float  camera_focus )
+    camera ( const gl::pos3f& camera_position
+           , const gl::vec3f& camera_direction
+           , const gl::vec3f& camera_normal
+           , const float      camera_fov
+           , const float      camera_dof
+           , const float      camera_focus )
         : position(camera_position)
-        , direction(vec3f::normalize(camera_direction))
-        , normal(vec3f::normalize(camera_normal))
+        , direction(gl::vec3f::normalize(camera_direction))
+        , normal(gl::vec3f::normalize(camera_normal))
         , fov(camera_fov)
         , dof(camera_dof)
         , focus(camera_focus)
     {
     }
 
-    pos3f position;
-    vec3f direction;
-    vec3f normal;
-    float fov;
-    float dof;
-    float focus;
+    gl::pos3f position;
+    gl::vec3f direction;
+    gl::vec3f normal;
+    float     fov;
+    float     dof;
+    float     focus;
 };
 
 }
 
 // ---------------------------------------------------------------------------
-// gl::light
+// rt::light
 // ---------------------------------------------------------------------------
 
-namespace gl {
+namespace rt {
 
 class light
 {
 public:
-    light ( const pos3f& light_position
-          , const col3f& light_color
-          , const float  light_power )
+    light ( const gl::pos3f& light_position
+          , const gl::col3f& light_color
+          , const float      light_power )
         : position(light_position)
         , color(light_color)
         , power(light_power)
     {
     }
 
-    pos3f position;
-    col3f color;
-    float power;
+    gl::pos3f position;
+    gl::col3f color;
+    float     power;
 };
 
 }
 
 // ---------------------------------------------------------------------------
-// gl::floor
+// rt::floor
 // ---------------------------------------------------------------------------
 
-namespace gl {
+namespace rt {
 
 class floor
 {
 public:
-    floor ( const pos3f& floor_position
-          , const vec3f& floor_normal
-          , const col3f& floor_color1
-          , const col3f& floor_color2 )
+    floor ( const gl::pos3f& floor_position
+          , const gl::vec3f& floor_normal
+          , const gl::col3f& floor_color1
+          , const gl::col3f& floor_color2 )
         : position(floor_position)
-        , normal(vec3f::normalize(floor_normal))
+        , normal(gl::vec3f::normalize(floor_normal))
         , color1(floor_color1)
         , color2(floor_color2)
     {
     }
 
-    pos3f position;
-    vec3f normal;
-    col3f color1;
-    col3f color2;
+    gl::pos3f position;
+    gl::vec3f normal;
+    gl::col3f color1;
+    gl::col3f color2;
 };
 
 }
 
 // ---------------------------------------------------------------------------
-// gl::sky
+// rt::sky
 // ---------------------------------------------------------------------------
 
-namespace gl {
+namespace rt {
 
 class sky
 {
 public:
-    sky(const col3f& sky_color)
+    sky(const gl::col3f& sky_color)
         : color(sky_color)
     {
     }
 
-    col3f color;
-};
-
-}
-
-// ---------------------------------------------------------------------------
-// gl::ray
-// ---------------------------------------------------------------------------
-
-namespace gl {
-
-class ray
-{
-public:
-    ray(const pos3f& ray_origin, const vec3f& ray_direction)
-        : origin(ray_origin)
-        , direction(vec3f::normalize(ray_direction))
-    {
-    }
-
-    pos3f origin;
-    vec3f direction;
+    gl::col3f color;
 };
 
 }
@@ -700,10 +744,10 @@ class scene
 public:
     scene();
 
-    scene ( const gl::camera& scene_camera
-          , const gl::light&  scene_light
-          , const gl::floor&  scene_floor
-          , const gl::sky&    scene_sky
+    scene ( const rt::camera& scene_camera
+          , const rt::light&  scene_light
+          , const rt::floor&  scene_floor
+          , const rt::sky&    scene_sky
           , const gl::col3f&  scene_ambient )
         : _camera(scene_camera)
         , _light(scene_light)
@@ -715,22 +759,22 @@ public:
 
     virtual ~scene() = default;
 
-    auto camera() const -> const gl::camera&
+    auto camera() const -> const rt::camera&
     {
         return _camera;
     }
 
-    auto light() const -> const gl::light&
+    auto light() const -> const rt::light&
     {
         return _light;
     }
 
-    auto floor() const -> const gl::floor&
+    auto floor() const -> const rt::floor&
     {
         return _floor;
     }
 
-    auto sky() const -> const gl::sky&
+    auto sky() const -> const rt::sky&
     {
         return _sky;
     }
@@ -741,26 +785,11 @@ public:
     }
 
 protected:
-    gl::camera _camera;
-    gl::light  _light;
-    gl::floor  _floor;
-    gl::sky    _sky;
+    rt::camera _camera;
+    rt::light  _light;
+    rt::floor  _floor;
+    rt::sky    _sky;
     gl::col3f  _ambient;
-};
-
-}
-
-// ---------------------------------------------------------------------------
-// card::HitType
-// ---------------------------------------------------------------------------
-
-namespace card {
-
-enum HitType
-{
-    kSkyHit    = 0,
-    kFloorHit  = 1,
-    kSphereHit = 2,
 };
 
 }
@@ -781,9 +810,9 @@ public:
     void render(ppm::writer&, const int w, const int h, const int samples, const int recursions);
 
 protected:
-    gl::col3f trace(const gl::ray& ray, const int depth);
+    gl::col3f trace(const rt::ray& ray, const int depth);
 
-    int hit(const gl::ray& ray, gl::pos3f& position, gl::vec3f& normal);
+    int hit(const rt::ray& ray, rt::hit_result& result);
 
 protected:
     base::console&   _console;
