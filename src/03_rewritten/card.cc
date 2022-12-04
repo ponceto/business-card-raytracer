@@ -262,6 +262,8 @@ void writer::close()
 
 namespace setup {
 
+#define PONCETO
+
 #ifdef PONCETO
 const uint32_t world[] = {
     0b00000000000000000000000000000000,
@@ -516,7 +518,7 @@ void raytracer::render(ppm::writer& output, const int w, const int h, const int 
     const int   half_w = (w / 2);
     const int   half_h = (h / 2);
     const float scale  = 255.0f / static_cast<float>(samples);
-    const float fov    = (camera.fov * 512.0) / static_cast<float>(w >= h ? w : h);
+    const float fov    = (camera.fov * 512.0) / static_cast<float>(h < w ? h : w);
     const rt::vec3f right (rt::vec3f::normalize(rt::vec3f::cross(camera.direction, camera.normal)) * fov);
     const rt::vec3f down  (rt::vec3f::normalize(rt::vec3f::cross(camera.direction, right        )) * fov);
     const rt::vec3f corner(camera.direction - (right + down) * 0.5f);
