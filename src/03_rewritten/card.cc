@@ -262,7 +262,40 @@ void writer::close()
 
 namespace setup {
 
-#ifdef PONCETO
+#if defined(SMILEY)
+const uint32_t world[] = {
+    0b00000000001111111111000000000000,
+    0b00000000010000000000100000000000,
+    0b00000000100100000010010000000000,
+    0b00000000101110000111010000000000,
+    0b00000001000100000010001000000000,
+    0b00000001000000000000001000000000,
+    0b00000001000000110000001000000000,
+    0b00000001000001111000001000000000,
+    0b00000001000000110000001000000000,
+    0b00000001000000000000001000000000,
+    0b00000001000111111110001000000000,
+    0b00000000100100000010010000000000,
+    0b00000000100011111100010000000000,
+    0b00000000010000000000100000000000,
+    0b00000000001111111111000000000000
+};
+const rt::pos3f camera_position (+19.0f, -17.0f, +15.0f);
+const rt::pos3f camera_target   ( +2.0f,   0.0f, +8.0f);
+const rt::pos3f camera_top      (+19.0f, -17.0f, +16.0f);
+const float     camera_fov      (0.002f);
+const float     camera_dof      (384.0f);
+const float     camera_focus    ( 24.0f);
+const rt::pos3f light_position  ( -5.0f, -15.0f, +16.0f);
+const rt::col3f light_color     ( +0.3f,  +0.6f,  +0.9f);
+const float     light_power     (+50.0f);
+const rt::col3f sky_color       (+0.50f, +0.40f, +1.00f);
+const rt::col3f sky_ambient     (+0.50f, +0.50f, +0.50f);
+const rt::pos3f floor_position  ( 0.0f,  0.0f, +0.0f);
+const rt::vec3f floor_normal    ( 0.0f,  0.0f, +1.0f);
+const rt::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
+const rt::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
+#elif defined(PONCETO)
 const uint32_t world[] = {
     0b00000000000000000000000000000000,
     0b11100011001001001110111101110110,
