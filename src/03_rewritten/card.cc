@@ -386,7 +386,7 @@ int raytracer::hit(const rt::ray& ray, rt::hit_result& result)
         const float distance = -ray.origin.z / ray.direction.z;
         if((distance < result.distance) && (distance > rt::traits::DISTANCE_MIN)) {
             result.type     = rt::traits::FLOOR_HIT;
-            result.distance = distance;
+            result.distance = distance - rt::traits::DISTANCE_MIN;
             result.normal   = _scene.get_floor().normal;
         }
     };
@@ -406,7 +406,7 @@ int raytracer::hit(const rt::ray& ray, rt::hit_result& result)
             const float distance = ((-b - ::sqrtf(delta)) / (2.0f * a));
             if((distance < result.distance) && (distance > rt::traits::DISTANCE_MIN)) {
                 result.type     = rt::traits::SPHERE_HIT;
-                result.distance = distance;
+                result.distance = distance - rt::traits::DISTANCE_MIN;
                 result.normal   = rt::vec3f::normalize(oc + ray.direction * result.distance);
             }
         }
@@ -421,7 +421,7 @@ int raytracer::hit(const rt::ray& ray, rt::hit_result& result)
             const float distance = (-b - ::sqrtf(delta));
             if((distance < result.distance) && (distance > rt::traits::DISTANCE_MIN)) {
                 result.type     = rt::traits::SPHERE_HIT;
-                result.distance = distance;
+                result.distance = distance - rt::traits::DISTANCE_MIN;
                 result.normal   = rt::vec3f::normalize(oc + ray.direction * result.distance);
             }
         }

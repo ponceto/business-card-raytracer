@@ -676,8 +676,8 @@ namespace rt {
 
 struct traits
 {
-    static constexpr float DISTANCE_MAX = std::numeric_limits<float>::max();
-    static constexpr float DISTANCE_MIN = std::numeric_limits<float>::epsilon();
+    static constexpr float DISTANCE_MAX = 1e+9f;
+    static constexpr float DISTANCE_MIN = 1e-5f;
     static constexpr int   SKY_HIT      = 0;
     static constexpr int   FLOOR_HIT    = 1;
     static constexpr int   SPHERE_HIT   = 2;
