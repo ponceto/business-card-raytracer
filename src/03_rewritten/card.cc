@@ -262,8 +262,6 @@ void writer::close()
 
 namespace setup {
 
-#define PONCETO
-
 #ifdef PONCETO
 const uint32_t world[] = {
     0b00000000000000000000000000000000,
