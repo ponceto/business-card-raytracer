@@ -512,13 +512,14 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
 
 void raytracer::render(ppm::writer& output, const int w, const int h, const int samples, const int recursions)
 {
+    const rt::camera& camera(_scene.get_camera());
     const int   half_w = (w / 2);
     const int   half_h = (h / 2);
     const float scale  = 255.0f / static_cast<float>(samples);
-    const rt::camera& camera(_scene.get_camera());
-    const rt::vec3f   right (rt::vec3f::normalize(rt::vec3f::cross(camera.direction, camera.normal)) * camera.fov);
-    const rt::vec3f   down  (rt::vec3f::normalize(rt::vec3f::cross(camera.direction, right        )) * camera.fov);
-    const rt::vec3f   corner(camera.direction - (right + down) * 0.5f);
+    const float fov    = (camera.fov * 512.0) / static_cast<float>(w >= h ? w : h);
+    const rt::vec3f right (rt::vec3f::normalize(rt::vec3f::cross(camera.direction, camera.normal)) * fov);
+    const rt::vec3f down  (rt::vec3f::normalize(rt::vec3f::cross(camera.direction, right        )) * fov);
+    const rt::vec3f corner(camera.direction - (right + down) * 0.5f);
 
     for(int y = 0; y < h; ++y) {
         for(int x = 0; x < w; ++x) {
