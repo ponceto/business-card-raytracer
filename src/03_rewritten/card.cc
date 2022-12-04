@@ -262,8 +262,8 @@ void writer::close()
 
 namespace setup {
 
-const uint32_t world[] = {
 #ifdef PONCETO
+const uint32_t world[] = {
     0b00000000000000000000000000000000,
     0b11100011001001001110111101110110,
     0b10010100101001010000100000101001,
@@ -273,7 +273,24 @@ const uint32_t world[] = {
     0b10000100101011010000100000101001,
     0b10000011001001001110111100100110,
     0b00000000000000000000000000000000
+};
+const rt::pos3f camera_position (-19.0f, -19.0f, +15.0f);
+const rt::pos3f camera_target   ( -5.0f,   0.0f, +11.0f);
+const rt::pos3f camera_top      (-19.0f, -19.0f, +16.0f);
+const float     camera_fov      (0.002f);
+const float     camera_dof      (256.0f);
+const float     camera_focus    ( 25.0f);
+const rt::pos3f light_position  ( +5.0f, -15.0f, +15.0f);
+const rt::col3f light_color     ( +0.5f,  +0.7f,  +0.9f);
+const float     light_power     (+50.0f);
+const rt::col3f sky_color       (+0.70f, +0.60f, +1.00f);
+const rt::col3f sky_ambient     (+0.50f, +0.50f, +0.50f);
+const rt::pos3f floor_position  ( 0.0f,  0.0f, +0.0f);
+const rt::vec3f floor_normal    ( 0.0f,  0.0f, +1.0f);
+const rt::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
+const rt::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
 #else /* aek */
+const uint32_t world[] = {
     0b00000000000000000000010000000000,
     0b00000000000000000000010000000000,
     0b00000000111000011100010000000000,
@@ -283,68 +300,67 @@ const uint32_t world[] = {
     0b00000001000100100000011000000000,
     0b00000001000100100000010100000000,
     0b00000000111100011100010010000000
-#endif
 };
-
-#ifdef PONCETO
-const gl::pos3f camera_position (-19.0f, -19.0f, +15.0f);
-const gl::pos3f camera_target   ( -5.0f,   0.0f, +11.0f);
-const gl::pos3f camera_top      (-19.0f, -19.0f, +16.0f);
-const float     camera_fov      (0.002f);
-const float     camera_dof      (256.0f);
-const float     camera_focus    ( 25.0f);
-const gl::pos3f light_position  ( +5.0f, -15.0f, +15.0f);
-const gl::col3f light_color     ( +0.5f,  +0.7f,  +0.9f);
-const float     light_power     (+50.0f);
-const gl::pos3f floor_position  ( 0.0f,  0.0f, +0.0f);
-const gl::vec3f floor_normal    ( 0.0f,  0.0f, +1.0f);
-const gl::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
-const gl::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
-const gl::col3f sky_color       (+0.70f, +0.60f, +1.00f);
-const gl::col3f ambient_color   (+0.50f, +0.50f, +0.50f);
-#else /* aek */
-const gl::pos3f camera_position (-7.0f, -16.0f,  +8.0f);
-const gl::pos3f camera_target   (-1.0f,   0.0f,  +8.0f);
-const gl::pos3f camera_top      (-7.0f, -16.0f,  +9.0f);
+const rt::pos3f camera_position (-7.0f, -16.0f,  +8.0f);
+const rt::pos3f camera_target   (-1.0f,   0.0f,  +8.0f);
+const rt::pos3f camera_top      (-7.0f, -16.0f,  +9.0f);
 const float     camera_fov      (0.002f);
 const float     camera_dof      ( 99.0f);
 const float     camera_focus    ( 16.0f);
-const gl::pos3f light_position  ( +0.5f,  -9.5f, +16.0f);
-const gl::col3f light_color     (+1.00f, +1.00f, +1.00f);
+const rt::pos3f light_position  ( +0.5f,  -9.5f, +16.0f);
+const rt::col3f light_color     (+1.00f, +1.00f, +1.00f);
 const float     light_power     (+15.0f);
-const gl::pos3f floor_position  ( 0.0f,  0.0f, +0.0f);
-const gl::vec3f floor_normal    ( 0.0f,  0.0f, +1.0f);
-const gl::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
-const gl::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
-const gl::col3f sky_color       (+0.70f, +0.60f, +1.00f);
-const gl::col3f ambient_color   (+0.35f, +0.35f, +0.35f);
+const rt::col3f sky_color       (+0.70f, +0.60f, +1.00f);
+const rt::col3f sky_ambient     (+0.35f, +0.35f, +0.35f);
+const rt::pos3f floor_position  ( 0.0f,  0.0f, +0.0f);
+const rt::vec3f floor_normal    ( 0.0f,  0.0f, +1.0f);
+const rt::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
+const rt::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
 #endif
 
+rt::camera& get_camera()
+{
+    static rt::camera camera ( camera_position
+                             , camera_target
+                             , camera_top
+                             , camera_fov
+                             , camera_dof
+                             , camera_focus );
+    return camera;
 }
 
-// ---------------------------------------------------------------------------
-// card::scene
-// ---------------------------------------------------------------------------
-
-namespace card {
-
-scene::scene()
-    : scene ( rt::camera ( setup::camera_position
-                         , setup::camera_target
-                         , setup::camera_top
-                         , setup::camera_fov
-                         , setup::camera_dof
-                         , setup::camera_focus )
-            , rt::light  ( setup::light_position
-                         , setup::light_color
-                         , setup::light_power )
-            , rt::floor  ( setup::floor_position
-                         , setup::floor_normal
-                         , setup::floor_color1
-                         , setup::floor_color2 )
-            , rt::sky    ( setup::sky_color )
-            , gl::col3f  ( setup::ambient_color ) )
+rt::light& get_light()
 {
+    static rt::light light ( light_position
+                           , light_color
+                           , light_power );
+    return light;
+}
+
+rt::sky& get_sky()
+{
+    static rt::sky sky ( sky_color
+                       , sky_ambient );
+    return sky;
+}
+
+rt::floor& get_floor()
+{
+    static rt::floor floor ( floor_position
+                           , floor_normal
+                           , floor_color1
+                           , floor_color2 );
+    return floor;
+}
+
+rt::scene& get_scene()
+{
+    static rt::scene scene ( get_camera()
+                           , get_light()
+                           , get_sky()
+                           , get_floor() );
+
+    return scene;
 }
 
 }
@@ -355,7 +371,7 @@ scene::scene()
 
 namespace card {
 
-raytracer::raytracer(base::console& console, card::scene& scene)
+raytracer::raytracer(base::console& console, const rt::scene& scene)
     : _console(console)
     , _random1(-0.50, +0.50)
     , _random2(-0.75, +0.75)
@@ -368,45 +384,45 @@ int raytracer::hit(const rt::ray& ray, rt::hit_result& result)
     auto hit_floor = [&]() -> void
     {
         const float distance = -ray.origin.z / ray.direction.z;
-        if((distance < result.distance) && (distance > result.distance_min)) {
-            result.type     = rt::hit_result::FLOOR_HIT;
+        if((distance < result.distance) && (distance > rt::traits::DISTANCE_MIN)) {
+            result.type     = rt::traits::FLOOR_HIT;
             result.distance = distance;
-            result.normal   = _scene.floor().normal;
+            result.normal   = _scene.get_floor().normal;
         }
     };
 
-    auto hit_sphere = [&](const gl::pos3f& center, const float radius) -> void
+    auto hit_sphere = [&](const rt::pos3f& center, const float radius) -> void
     {
-        const gl::vec3f oc(gl::pos3f::difference(ray.origin, center));
+        const rt::vec3f oc(rt::pos3f::difference(ray.origin, center));
 #if 0
         /*
          * the complete analytic version
          */
-        const float a = gl::vec3f::dot(ray.direction, ray.direction);
-        const float b = 2.0f * gl::vec3f::dot(oc, ray.direction);
-        const float c = gl::vec3f::dot(oc, oc) - (radius * radius);
+        const float a = rt::vec3f::dot(ray.direction, ray.direction);
+        const float b = 2.0f * rt::vec3f::dot(oc, ray.direction);
+        const float c = rt::vec3f::dot(oc, oc) - (radius * radius);
         const float delta = ((b * b) - (4.0 * a * c));
         if(delta > 0.0) {
             const float distance = ((-b - ::sqrtf(delta)) / (2.0f * a));
-            if((distance < result.distance) && (distance > result.distance_min)) {
-                result.type     = rt::hit_result::SPHERE_HIT;
+            if((distance < result.distance) && (distance > rt::traits::DISTANCE_MIN)) {
+                result.type     = rt::traits::SPHERE_HIT;
                 result.distance = distance;
-                result.normal   = gl::vec3f::normalize(oc + ray.direction * result.distance);
+                result.normal   = rt::vec3f::normalize(oc + ray.direction * result.distance);
             }
         }
 #else
         /*
          * the simplified analytic version
          */
-        const float b = gl::vec3f::dot(oc, ray.direction);
-        const float c = gl::vec3f::dot(oc, oc) - (radius * radius);
+        const float b = rt::vec3f::dot(oc, ray.direction);
+        const float c = rt::vec3f::dot(oc, oc) - (radius * radius);
         const float delta = ((b * b) - c);
         if(delta > 0.0) {
             const float distance = (-b - ::sqrtf(delta));
-            if((distance < result.distance) && (distance > result.distance_min)) {
-                result.type     = rt::hit_result::SPHERE_HIT;
+            if((distance < result.distance) && (distance > rt::traits::DISTANCE_MIN)) {
+                result.type     = rt::traits::SPHERE_HIT;
                 result.distance = distance;
-                result.normal   = gl::vec3f::normalize(oc + ray.direction * result.distance);
+                result.normal   = rt::vec3f::normalize(oc + ray.direction * result.distance);
             }
         }
 #endif
@@ -431,7 +447,7 @@ int raytracer::hit(const rt::ray& ray, rt::hit_result& result)
                     const float y = static_cast<float>(0);
                     const float z = static_cast<float>((rows - row) + row_offset);
                     const float r = 1.0;
-                    hit_sphere(gl::pos3f(x, y, z), r);
+                    hit_sphere(rt::pos3f(x, y, z), r);
                 }
                 if((val >>= 1) == 0) {
                     break;
@@ -448,31 +464,30 @@ int raytracer::hit(const rt::ray& ray, rt::hit_result& result)
     return result.type;
 }
 
-gl::col3f raytracer::trace(const rt::ray& ray, const int recursion)
+rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
 {
-    const rt::light& light  (_scene.light());
-    const rt::floor& floor  (_scene.floor());
-    const rt::sky&   sky    (_scene.sky());
-    const gl::col3f& ambient(_scene.ambient());
+    const rt::light& light = _scene.get_light();
+    const rt::sky&   sky   = _scene.get_sky();
+    const rt::floor& floor = _scene.get_floor();
 
     if(recursion <= 0) {
-        return ambient;
+        return sky.ambient;
     }
 
     rt::hit_result result;
-    if(hit(ray, result) == rt::hit_result::SKY_HIT) {
+    if(hit(ray, result) == rt::traits::SKY_HIT) {
         return sky.color * ::powf(1.0f - ray.direction.z, 4.0f);
     }
 
-    const gl::pos3f light_pos ( (light.position.x + _random2())
+    const rt::pos3f light_pos ( (light.position.x + _random2())
                               , (light.position.y + _random2())
                               , (light.position.z + _random2()) );
 
-    const gl::vec3f light_direction(gl::vec3f::normalize(gl::pos3f::difference(light_pos, result.position)));
-    const gl::vec3f reflection(ray.direction + result.normal * (gl::vec3f::dot(result.normal, ray.direction) * -2.0f));
-    float distance    = gl::vec3f::length(gl::pos3f::difference(light.position, result.position));
+    const rt::vec3f light_direction(rt::vec3f::normalize(rt::pos3f::difference(light_pos, result.position)));
+    const rt::vec3f reflection(ray.direction + result.normal * (rt::vec3f::dot(result.normal, ray.direction) * -2.0f));
+    float distance    = rt::vec3f::length(rt::pos3f::difference(light.position, result.position));
     float attenuation = 1.0f / ::sqrtf(distance / light.power);
-    float diffusion   = gl::vec3f::dot(light_direction, result.normal);
+    float diffusion   = rt::vec3f::dot(light_direction, result.normal);
 
     /* cast shadows */ {
         rt::hit_result dummy;
@@ -481,16 +496,16 @@ gl::col3f raytracer::trace(const rt::ray& ray, const int recursion)
         }
     }
 
-    if(result.type == rt::hit_result::FLOOR_HIT) {
+    if(result.type == rt::traits::FLOOR_HIT) {
         const float x = ::ceilf(result.position.x * 0.2f);
         const float y = ::ceilf(result.position.y * 0.2f);
-        const gl::col3f color ( static_cast<int>(x + y) & 1
+        const rt::col3f color ( static_cast<int>(x + y) & 1
                               ? floor.color1
                               : floor.color2 );
-        return (color * ambient) + (color * light.color * diffusion * attenuation);
+        return (color * sky.ambient) + (color * light.color * diffusion * attenuation);
     }
 
-    const float p = ::powf(gl::vec3f::dot(light_direction, reflection) * (diffusion > 0.0f), 99.0f);
+    const float p = ::powf(rt::vec3f::dot(light_direction, reflection) * (diffusion > 0.0f), 99.0f);
 
     return trace(rt::ray(result.position, reflection), (recursion - 1)) * 0.5f + (light.color * p * attenuation);
 }
@@ -500,19 +515,19 @@ void raytracer::render(ppm::writer& output, const int w, const int h, const int 
     const int   half_w = (w / 2);
     const int   half_h = (h / 2);
     const float scale  = 255.0f / static_cast<float>(samples);
-    const rt::camera& camera(_scene.camera());
-    const gl::vec3f   right (gl::vec3f::normalize(gl::vec3f::cross(camera.direction, camera.normal)) * camera.fov);
-    const gl::vec3f   down  (gl::vec3f::normalize(gl::vec3f::cross(camera.direction, right        )) * camera.fov);
-    const gl::vec3f   corner(camera.direction - (right + down) * 0.5f);
+    const rt::camera& camera(_scene.get_camera());
+    const rt::vec3f   right (rt::vec3f::normalize(rt::vec3f::cross(camera.direction, camera.normal)) * camera.fov);
+    const rt::vec3f   down  (rt::vec3f::normalize(rt::vec3f::cross(camera.direction, right        )) * camera.fov);
+    const rt::vec3f   corner(camera.direction - (right + down) * 0.5f);
 
     for(int y = 0; y < h; ++y) {
         for(int x = 0; x < w; ++x) {
-            gl::col3f color;
+            rt::col3f color;
             for(int count = samples; count != 0; --count) {
-                const gl::vec3f lens ( ( (right * _random1())
+                const rt::vec3f lens ( ( (right * _random1())
                                        + ( down * _random1()) ) * camera.dof );
 
-                const gl::vec3f dir ( (right * (static_cast<float>(x - half_w + 1) + _random1()))
+                const rt::vec3f dir ( (right * (static_cast<float>(x - half_w + 1) + _random1()))
                                     + ( down * (static_cast<float>(y - half_h + 1) + _random1()))
                                     + corner );
 
@@ -580,8 +595,7 @@ void generator::main()
     auto render = [&]() -> void
     {
         ppm::writer output(_output);
-        card::scene scene;
-        card::raytracer raytracer(*this, scene);
+        card::raytracer raytracer(*this, setup::get_scene());
 
         output.open(_card_w, _card_h, 255);
         begin();

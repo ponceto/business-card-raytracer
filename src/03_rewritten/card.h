@@ -310,11 +310,60 @@ public:
         return *this;
     }
 
-    static float length(const vec3f& vec)
+    vec3f checked() const
     {
-        return ::sqrtf ( (vec.x * vec.x)
-                       + (vec.y * vec.y)
-                       + (vec.z * vec.z) );
+        auto check = [](const float value) -> float
+        {
+            return (value != value ? 0.0f : value);
+        };
+
+        return vec3f ( check(x)
+                     , check(y)
+                     , check(z) );
+    }
+
+    vec3f clamped() const
+    {
+        auto clamp = [](const float value) -> float
+        {
+            return value;
+        };
+
+        return vec3f ( clamp(x)
+                     , clamp(y)
+                     , clamp(z) );
+    }
+
+    vec3f normalized() const
+    {
+        const float veclen = length(*this);
+
+        return vec3f ( (x / veclen)
+                     , (y / veclen)
+                     , (z / veclen) );
+    }
+
+    static float length(const vec3f& rhs)
+    {
+        return ::sqrtf ( (rhs.x * rhs.x)
+                       + (rhs.y * rhs.y)
+                       + (rhs.z * rhs.z) );
+    }
+
+    static float length2(const vec3f& rhs)
+    {
+        return ( (rhs.x * rhs.x)
+               + (rhs.y * rhs.y)
+               + (rhs.z * rhs.z) );
+    }
+
+    static vec3f normalize(const vec3f& rhs)
+    {
+        const float veclen = length(rhs);
+
+        return vec3f ( (rhs.x / veclen)
+                     , (rhs.y / veclen)
+                     , (rhs.z / veclen) );
     }
 
     static float dot(const vec3f& lhs, const vec3f& rhs)
@@ -329,15 +378,6 @@ public:
         return vec3f ( (lhs.y * rhs.z - lhs.z * rhs.y)
                      , (lhs.z * rhs.x - lhs.x * rhs.z)
                      , (lhs.x * rhs.y - lhs.y * rhs.x) );
-    }
-
-    static vec3f normalize(const vec3f& vec)
-    {
-        const float veclen = length(vec);
-
-        return vec3f ( (vec.x / veclen)
-                     , (vec.y / veclen)
-                     , (vec.z / veclen) );
     }
 
     float x;
@@ -446,6 +486,30 @@ public:
         return *this;
     }
 
+    pos3f checked() const
+    {
+        auto check = [](const float value) -> float
+        {
+            return (value != value ? 0.0f : value);
+        };
+
+        return pos3f ( check(x)
+                     , check(y)
+                     , check(z) );
+    }
+
+    pos3f clamped() const
+    {
+        auto clamp = [](const float value) -> float
+        {
+            return value;
+        };
+
+        return pos3f ( clamp(x)
+                     , clamp(y)
+                     , clamp(z) );
+    }
+
     static vec3f difference(const pos3f& lhs, const pos3f& rhs)
     {
         return vec3f ( (lhs.x - rhs.x)
@@ -552,9 +616,71 @@ public:
         return *this;
     }
 
+    col3f checked() const
+    {
+        auto check = [](const float value) -> float
+        {
+            return (value != value ? 0.0f : value);
+        };
+
+        return col3f ( check(r)
+                     , check(g)
+                     , check(b) );
+    }
+
+    col3f clamped() const
+    {
+        auto clamp = [](const float value) -> float
+        {
+            constexpr float min = 0.0f;
+            constexpr float max = 1.0f;
+
+            if(value < min) {
+                return min;
+            }
+            if(value > max) {
+                return max;
+            }
+            return value;
+        };
+
+        return col3f ( clamp(r)
+                     , clamp(g)
+                     , clamp(b) );
+    }
+
     float r;
     float g;
     float b;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::using
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+using vec3f = gl::vec3f;
+using pos3f = gl::pos3f;
+using col3f = gl::col3f;
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::traits
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+struct traits
+{
+    static constexpr float DISTANCE_MAX = std::numeric_limits<float>::max();
+    static constexpr float DISTANCE_MIN = std::numeric_limits<float>::epsilon();
+    static constexpr int   SKY_HIT      = 0;
+    static constexpr int   FLOOR_HIT    = 1;
+    static constexpr int   SPHERE_HIT   = 2;
 };
 
 }
@@ -569,23 +695,17 @@ class hit_result
 {
 public:
     hit_result()
-        : type(SKY_HIT)
-        , distance(distance_max)
+        : type(traits::SKY_HIT)
+        , distance(traits::DISTANCE_MAX)
         , position()
         , normal()
     {
     }
 
-    static constexpr float distance_max = std::numeric_limits<float>::max();
-    static constexpr float distance_min = std::numeric_limits<float>::epsilon();
-    static constexpr int   SKY_HIT      = 0;
-    static constexpr int   FLOOR_HIT    = 1;
-    static constexpr int   SPHERE_HIT   = 2;
-
-    int       type;
-    float     distance;
-    gl::pos3f position;
-    gl::vec3f normal;
+    int   type;
+    float distance;
+    pos3f position;
+    vec3f normal;
 };
 
 }
@@ -599,15 +719,15 @@ namespace rt {
 class ray
 {
 public:
-    ray ( const gl::pos3f& ray_origin
-        , const gl::vec3f& ray_direction )
+    ray ( const pos3f& ray_origin
+        , const vec3f& ray_direction )
         : origin(ray_origin)
-        , direction(gl::vec3f::normalize(ray_direction))
+        , direction(ray_direction.normalized())
     {
     }
 
-    gl::pos3f origin;
-    gl::vec3f direction;
+    pos3f origin;
+    vec3f direction;
 };
 
 }
@@ -621,42 +741,42 @@ namespace rt {
 class camera
 {
 public:
-    camera ( const gl::pos3f& camera_position
-           , const gl::pos3f& camera_target
-           , const gl::pos3f& camera_up
-           , const float      camera_fov
-           , const float      camera_dof
-           , const float      camera_focus )
+    camera ( const pos3f& camera_position
+           , const pos3f& camera_target
+           , const pos3f& camera_up
+           , const float  camera_fov
+           , const float  camera_dof
+           , const float  camera_focus )
         : camera ( camera_position
-                 , gl::pos3f::difference(camera_target, camera_position)
-                 , gl::pos3f::difference(camera_up    , camera_position)
+                 , pos3f::difference(camera_target, camera_position)
+                 , pos3f::difference(camera_up    , camera_position)
                  , camera_fov
                  , camera_dof
                  , camera_focus )
     {
     }
 
-    camera ( const gl::pos3f& camera_position
-           , const gl::vec3f& camera_direction
-           , const gl::vec3f& camera_normal
-           , const float      camera_fov
-           , const float      camera_dof
-           , const float      camera_focus )
+    camera ( const pos3f& camera_position
+           , const vec3f& camera_direction
+           , const vec3f& camera_normal
+           , const float  camera_fov
+           , const float  camera_dof
+           , const float  camera_focus )
         : position(camera_position)
-        , direction(gl::vec3f::normalize(camera_direction))
-        , normal(gl::vec3f::normalize(camera_normal))
+        , direction(camera_direction.normalized())
+        , normal(camera_normal.normalized())
         , fov(camera_fov)
         , dof(camera_dof)
         , focus(camera_focus)
     {
     }
 
-    gl::pos3f position;
-    gl::vec3f direction;
-    gl::vec3f normal;
-    float     fov;
-    float     dof;
-    float     focus;
+    pos3f position;
+    vec3f direction;
+    vec3f normal;
+    float fov;
+    float dof;
+    float focus;
 };
 
 }
@@ -670,46 +790,18 @@ namespace rt {
 class light
 {
 public:
-    light ( const gl::pos3f& light_position
-          , const gl::col3f& light_color
-          , const float      light_power )
+    light ( const pos3f& light_position
+          , const col3f& light_color
+          , const float  light_power )
         : position(light_position)
         , color(light_color)
         , power(light_power)
     {
     }
 
-    gl::pos3f position;
-    gl::col3f color;
-    float     power;
-};
-
-}
-
-// ---------------------------------------------------------------------------
-// rt::floor
-// ---------------------------------------------------------------------------
-
-namespace rt {
-
-class floor
-{
-public:
-    floor ( const gl::pos3f& floor_position
-          , const gl::vec3f& floor_normal
-          , const gl::col3f& floor_color1
-          , const gl::col3f& floor_color2 )
-        : position(floor_position)
-        , normal(gl::vec3f::normalize(floor_normal))
-        , color1(floor_color1)
-        , color2(floor_color2)
-    {
-    }
-
-    gl::pos3f position;
-    gl::vec3f normal;
-    gl::col3f color1;
-    gl::col3f color2;
+    pos3f position;
+    col3f color;
+    float power;
 };
 
 }
@@ -723,73 +815,94 @@ namespace rt {
 class sky
 {
 public:
-    sky(const gl::col3f& sky_color)
+    sky ( const col3f& sky_color
+        , const col3f& sky_ambient )
         : color(sky_color)
+        , ambient(sky_ambient)
     {
     }
 
-    gl::col3f color;
+    col3f color;
+    col3f ambient;
 };
 
 }
 
 // ---------------------------------------------------------------------------
-// card::scene
+// rt::floor
 // ---------------------------------------------------------------------------
 
-namespace card {
+namespace rt {
+
+class floor
+{
+public:
+    floor ( const pos3f& floor_position
+          , const vec3f& floor_normal
+          , const col3f& floor_color1
+          , const col3f& floor_color2 )
+        : position(floor_position)
+        , normal(floor_normal.normalized())
+        , color1(floor_color1)
+        , color2(floor_color2)
+    {
+    }
+
+    pos3f position;
+    vec3f normal;
+    col3f color1;
+    col3f color2;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::scene
+// ---------------------------------------------------------------------------
+
+namespace rt {
 
 class scene
 {
 public:
-    scene();
-
-    scene ( const rt::camera& scene_camera
-          , const rt::light&  scene_light
-          , const rt::floor&  scene_floor
-          , const rt::sky&    scene_sky
-          , const gl::col3f&  scene_ambient )
+    scene ( const camera& scene_camera
+          , const light&  scene_light
+          , const sky&    scene_sky
+          , const floor&  scene_floor )
         : _camera(scene_camera)
         , _light(scene_light)
-        , _floor(scene_floor)
         , _sky(scene_sky)
-        , _ambient(scene_ambient)
+        , _floor(scene_floor)
     {
     }
 
     virtual ~scene() = default;
 
-    auto camera() const -> const rt::camera&
+    auto get_camera() const -> const camera&
     {
         return _camera;
     }
 
-    auto light() const -> const rt::light&
+    auto get_light() const -> const light&
     {
         return _light;
     }
 
-    auto floor() const -> const rt::floor&
-    {
-        return _floor;
-    }
-
-    auto sky() const -> const rt::sky&
+    auto get_sky() const -> const sky&
     {
         return _sky;
     }
 
-    auto ambient() const -> const gl::col3f&
+    auto get_floor() const -> const floor&
     {
-        return _ambient;
+        return _floor;
     }
 
 protected:
-    rt::camera _camera;
-    rt::light  _light;
-    rt::floor  _floor;
-    rt::sky    _sky;
-    gl::col3f  _ambient;
+    camera _camera;
+    light  _light;
+    sky    _sky;
+    floor  _floor;
 };
 
 }
@@ -803,14 +916,14 @@ namespace card {
 class raytracer
 {
 public:
-    raytracer(base::console& console, card::scene& scene);
+    raytracer(base::console& console, const rt::scene& scene);
 
     virtual ~raytracer() = default;
 
     void render(ppm::writer&, const int w, const int h, const int samples, const int recursions);
 
 protected:
-    gl::col3f trace(const rt::ray& ray, const int depth);
+    rt::col3f trace(const rt::ray& ray, const int depth);
 
     int hit(const rt::ray& ray, rt::hit_result& result);
 
@@ -818,7 +931,7 @@ protected:
     base::console&   _console;
     base::randomizer _random1;
     base::randomizer _random2;
-    card::scene&     _scene;
+    const rt::scene& _scene;
 };
 
 }
