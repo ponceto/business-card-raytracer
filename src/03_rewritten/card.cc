@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <memory>
 #include <random>
 #include <iostream>
 #include <stdexcept>
@@ -295,6 +296,9 @@ const rt::pos3f floor_position  ( 0.0f,  0.0f, +0.0f);
 const rt::vec3f floor_normal    ( 0.0f,  0.0f, +1.0f);
 const rt::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
 const rt::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
+const rt::col3f sphere_color    (+0.1f, +0.2f, +0.3f);
+const float     floor_reflect   (0.3f);
+const float     sphere_reflect  (0.7f);
 #elif defined(PONCETO)
 const uint32_t world[] = {
     0b00000000000000000000000000000000,
@@ -322,6 +326,9 @@ const rt::pos3f floor_position  ( 0.0f,  0.0f, +0.0f);
 const rt::vec3f floor_normal    ( 0.0f,  0.0f, +1.0f);
 const rt::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
 const rt::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
+const rt::col3f sphere_color    (+0.2f, +0.5f, +0.2f);
+const float     floor_reflect   (0.3f);
+const float     sphere_reflect  (0.7f);
 #else /* aek */
 const uint32_t world[] = {
     0b00000000000000000000010000000000,
@@ -349,6 +356,9 @@ const rt::pos3f floor_position  ( 0.0f,  0.0f, +0.0f);
 const rt::vec3f floor_normal    ( 0.0f,  0.0f, +1.0f);
 const rt::col3f floor_color1    (+1.0f, +0.3f, +0.3f);
 const rt::col3f floor_color2    (+1.0f, +1.0f, +1.0f);
+const rt::col3f sphere_color    (+0.0f, +0.0f, +0.0f);
+const float     floor_reflect   (0.0f);
+const float     sphere_reflect  (0.5f);
 #endif
 
 rt::camera& get_camera()
@@ -377,23 +387,149 @@ rt::sky& get_sky()
     return sky;
 }
 
-rt::floor& get_floor()
-{
-    static rt::floor floor ( floor_position
-                           , floor_normal
-                           , floor_color1
-                           , floor_color2 );
-    return floor;
-}
-
 rt::scene& get_scene()
 {
     static rt::scene scene ( get_camera()
                            , get_light()
-                           , get_sky()
-                           , get_floor() );
+                           , get_sky() );
+
+    auto add_floor = [&]() -> bool
+    {
+        scene.add(std::make_unique<rt::floor> ( floor_position
+                                              , floor_normal
+                                              , floor_color1
+                                              , floor_color2 ) );
+        return true;
+    };
+
+    auto add_spheres = [&]() -> bool
+    {
+        constexpr int cols       = 32;
+        constexpr int rows       = countof(setup::world);
+        constexpr int col_offset = -16;
+        constexpr int row_offset = +3;
+
+        for(int row = 0; row < rows; ++row) {
+            uint32_t constexpr lsb = (1 << 0);
+            uint32_t           val = world[row];
+            if(val == 0) {
+                continue;
+            }
+            for(int col = 0; col < cols; ++col) {
+                if(val & lsb) {
+                    const float x = static_cast<float>((cols - col) + col_offset);
+                    const float y = static_cast<float>(0);
+                    const float z = static_cast<float>((rows - row) + row_offset);
+                    const float r = 1.0;
+                    scene.add ( std::make_unique<rt::sphere> ( rt::pos3f(x, y, z)
+                                                             , sphere_color
+                                                             , r ) );
+                }
+                if((val >>= 1) == 0) {
+                    break;
+                }
+            }
+        }
+        return true;
+    };
+
+    static bool floor   = add_floor();
+    static bool spheres = add_spheres();
+
+    static_cast<void>(floor);
+    static_cast<void>(spheres);
 
     return scene;
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::object
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::floor
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+bool floor::hit(const ray& ray, hit_result& result) const
+{
+    auto color = [&]() -> const col3f&
+    {
+        const float x = ::ceilf(result.position.x * 0.2f);
+        const float y = ::ceilf(result.position.y * 0.2f);
+
+        return (static_cast<int>(x + y) & 1 ? color1 : color2);
+    };
+
+    const float distance = -ray.origin.z / ray.direction.z;
+    if((distance > traits::DISTANCE_MIN) && (distance < result.distance)) {
+        result.type     = traits::FLOOR_HIT;
+        result.distance = distance - traits::DISTANCE_MIN;
+        result.position = (ray.origin + (ray.direction * result.distance));
+        result.normal   = normal;
+        result.color    = color();
+        return true;
+    }
+    return false;
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::sphere
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+bool sphere::hit(const ray& ray, hit_result& result) const
+{
+    const vec3f oc(pos3f::difference(ray.origin, center));
+#if 0
+    /*
+     * the complete analytic version
+     */
+    const float a = vec3f::dot(ray.direction, ray.direction);
+    const float b = 2.0f * vec3f::dot(oc, ray.direction);
+    const float c = vec3f::dot(oc, oc) - (radius * radius);
+    const float delta = ((b * b) - (4.0 * a * c));
+    if(delta > 0.0) {
+        const float distance = ((-b - ::sqrtf(delta)) / (2.0f * a));
+        if((distance > traits::DISTANCE_MIN) && (distance < result.distance)) {
+            result.type     = traits::SPHERE_HIT;
+            result.distance = distance - traits::DISTANCE_MIN;
+            result.position = (ray.origin + (ray.direction * result.distance));
+            result.normal   = vec3f::normalize(oc + ray.direction * result.distance);
+            result.color    = color;
+            return true;
+        }
+    }
+#else
+    /*
+     * the simplified analytic version
+     */
+    const float b = vec3f::dot(oc, ray.direction);
+    const float c = vec3f::dot(oc, oc) - (radius * radius);
+    const float delta = ((b * b) - c);
+    if(delta > 0.0) {
+        const float distance = (-b - ::sqrtf(delta));
+        if((distance > traits::DISTANCE_MIN) && (distance < result.distance)) {
+            result.type     = traits::SPHERE_HIT;
+            result.distance = distance - traits::DISTANCE_MIN;
+            result.position = (ray.origin + (ray.direction * result.distance));
+            result.normal   = vec3f::normalize(oc + ray.direction * result.distance);
+            result.color    = color;
+            return true;
+        }
+    }
+#endif
+    return false;
 }
 
 }
@@ -414,85 +550,16 @@ raytracer::raytracer(base::console& console, const rt::scene& scene)
 
 int raytracer::hit(const rt::ray& ray, rt::hit_result& result)
 {
-    auto hit_floor = [&]() -> void
+    auto hit_objects = [&]() -> void
     {
-        const float distance = -ray.origin.z / ray.direction.z;
-        if((distance > rt::traits::DISTANCE_MIN) && (distance < result.distance)) {
-            result.type     = rt::traits::FLOOR_HIT;
-            result.distance = distance - rt::traits::DISTANCE_MIN;
-            result.normal   = _scene.get_floor().normal;
+        const auto& objects = _scene.get_objects();
+        for(auto& object : objects) {
+            static_cast<void>(object->hit(ray, result));
         }
+        result.position = (ray.origin + (ray.direction * result.distance));
     };
 
-    auto hit_sphere = [&](const rt::pos3f& center, const float radius) -> void
-    {
-        const rt::vec3f oc(rt::pos3f::difference(ray.origin, center));
-#if 0
-        /*
-         * the complete analytic version
-         */
-        const float a = rt::vec3f::dot(ray.direction, ray.direction);
-        const float b = 2.0f * rt::vec3f::dot(oc, ray.direction);
-        const float c = rt::vec3f::dot(oc, oc) - (radius * radius);
-        const float delta = ((b * b) - (4.0 * a * c));
-        if(delta > 0.0) {
-            const float distance = ((-b - ::sqrtf(delta)) / (2.0f * a));
-            if((distance > rt::traits::DISTANCE_MIN) && (distance < result.distance)) {
-                result.type     = rt::traits::SPHERE_HIT;
-                result.distance = distance - rt::traits::DISTANCE_MIN;
-                result.normal   = rt::vec3f::normalize(oc + ray.direction * result.distance);
-            }
-        }
-#else
-        /*
-         * the simplified analytic version
-         */
-        const float b = rt::vec3f::dot(oc, ray.direction);
-        const float c = rt::vec3f::dot(oc, oc) - (radius * radius);
-        const float delta = ((b * b) - c);
-        if(delta > 0.0) {
-            const float distance = (-b - ::sqrtf(delta));
-            if((distance > rt::traits::DISTANCE_MIN) && (distance < result.distance)) {
-                result.type     = rt::traits::SPHERE_HIT;
-                result.distance = distance - rt::traits::DISTANCE_MIN;
-                result.normal   = rt::vec3f::normalize(oc + ray.direction * result.distance);
-            }
-        }
-#endif
-    };
-
-    auto hit_spheres = [&]() -> void
-    {
-        constexpr int cols       = 32;
-        constexpr int rows       = countof(setup::world);
-        constexpr int col_offset = -16;
-        constexpr int row_offset = +3;
-
-        for(int row = 0; row < rows; ++row) {
-            uint32_t constexpr lsb = (1 << 0);
-            uint32_t           val = setup::world[row];
-            if(val == 0) {
-                continue;
-            }
-            for(int col = 0; col < cols; ++col) {
-                if(val & lsb) {
-                    const float x = static_cast<float>((cols - col) + col_offset);
-                    const float y = static_cast<float>(0);
-                    const float z = static_cast<float>((rows - row) + row_offset);
-                    const float r = 1.0;
-                    hit_sphere(rt::pos3f(x, y, z), r);
-                }
-                if((val >>= 1) == 0) {
-                    break;
-                }
-            }
-        }
-    };
-
-    hit_floor();
-    hit_spheres();
-
-    result.position = (ray.origin + (ray.direction * result.distance));
+    hit_objects();
 
     return result.type;
 }
@@ -501,7 +568,6 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
 {
     const rt::light& light = _scene.get_light();
     const rt::sky&   sky   = _scene.get_sky();
-    const rt::floor& floor = _scene.get_floor();
 
     if(recursion <= 0) {
         return sky.ambient;
@@ -529,18 +595,31 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
         }
     }
 
+    float     reflection_coef = 0.0f;
+    float     diffusion_coef  = 1.0f;
+    rt::col3f reflected_color;
+    rt::col3f diffused_color;
+
     if(result.type == rt::traits::FLOOR_HIT) {
-        const float x = ::ceilf(result.position.x * 0.2f);
-        const float y = ::ceilf(result.position.y * 0.2f);
-        const rt::col3f color ( static_cast<int>(x + y) & 1
-                              ? floor.color1
-                              : floor.color2 );
-        return (color * sky.ambient) + (color * light.color * diffusion * attenuation);
+        reflection_coef = setup::floor_reflect;
+        diffusion_coef  = 1.0f - reflection_coef;
     }
 
-    const float p = ::powf(rt::vec3f::dot(light_direction, reflection) * (diffusion > 0.0f), 99.0f);
+    if(result.type == rt::traits::SPHERE_HIT) {
+        reflection_coef = setup::sphere_reflect;
+        diffusion_coef  = 1.0f - reflection_coef;
+    }
 
-    return trace(rt::ray(result.position, reflection), (recursion - 1)) * 0.5f + (light.color * p * attenuation);
+    if(diffusion_coef > 0.0f) {
+        diffused_color = ((result.color * sky.ambient) + (result.color * light.color * diffusion * attenuation)) * diffusion_coef;
+    }
+
+    if(reflection_coef > 0.0f) {
+        const float phong = ::powf(rt::vec3f::dot(light_direction, reflection) * (diffusion > 0.0f), 99.0f);
+        reflected_color = trace(rt::ray(result.position, reflection), (recursion - 1)) * reflection_coef + (light.color * phong * attenuation);
+    }
+
+    return diffused_color + reflected_color;
 }
 
 void raytracer::render(ppm::writer& output, const int w, const int h, const int samples, const int recursions)

@@ -699,6 +699,7 @@ public:
         , distance(traits::DISTANCE_MAX)
         , position()
         , normal()
+        , color()
     {
     }
 
@@ -706,6 +707,7 @@ public:
     float distance;
     pos3f position;
     vec3f normal;
+    col3f color;
 };
 
 }
@@ -829,29 +831,87 @@ public:
 }
 
 // ---------------------------------------------------------------------------
+// rt::object
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+class object
+{
+public:
+    object() = default;
+
+    virtual ~object() = default;
+
+    virtual bool hit(const ray&, hit_result&) const = 0;
+
+    using pointer = std::unique_ptr<object>;
+    using vector  = std::vector<pointer>;
+};
+
+}
+
+// ---------------------------------------------------------------------------
 // rt::floor
 // ---------------------------------------------------------------------------
 
 namespace rt {
 
-class floor
+class floor final
+    : public object
 {
 public:
     floor ( const pos3f& floor_position
           , const vec3f& floor_normal
           , const col3f& floor_color1
           , const col3f& floor_color2 )
-        : position(floor_position)
+        : object()
+        , position(floor_position)
         , normal(floor_normal.normalized())
         , color1(floor_color1)
         , color2(floor_color2)
     {
     }
 
+    virtual ~floor() = default;
+
+    virtual bool hit(const ray&, hit_result&) const override;
+
     pos3f position;
     vec3f normal;
     col3f color1;
     col3f color2;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::sphere
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+class sphere final
+    : public object
+{
+public:
+    sphere ( const pos3f& sphere_center
+           , const col3f& sphere_color
+           , const float  sphere_radius )
+        : object()
+        , center(sphere_center)
+        , color(sphere_color)
+        , radius(sphere_radius)
+    {
+    }
+
+    virtual ~sphere() = default;
+
+    virtual bool hit(const ray&, hit_result&) const override;
+
+    pos3f center;
+    col3f color;
+    float radius;
 };
 
 }
@@ -867,12 +927,11 @@ class scene
 public:
     scene ( const camera& scene_camera
           , const light&  scene_light
-          , const sky&    scene_sky
-          , const floor&  scene_floor )
+          , const sky&    scene_sky )
         : _camera(scene_camera)
         , _light(scene_light)
         , _sky(scene_sky)
-        , _floor(scene_floor)
+        , _objects()
     {
     }
 
@@ -893,16 +952,21 @@ public:
         return _sky;
     }
 
-    auto get_floor() const -> const floor&
+    auto get_objects() const -> const auto&
     {
-        return _floor;
+        return _objects;
+    }
+
+    void add(object::pointer&& object_ptr)
+    {
+        _objects.push_back(std::move(object_ptr));
     }
 
 protected:
-    camera _camera;
-    light  _light;
-    sky    _sky;
-    floor  _floor;
+    camera         _camera;
+    light          _light;
+    sky            _sky;
+    object::vector _objects;
 };
 
 }
