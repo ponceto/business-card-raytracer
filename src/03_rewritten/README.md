@@ -4,8 +4,6 @@ This is the refactored source code of Andrew Kensler's famous `Business Card Ray
 
 This basically the original source code fully refactored and rewritten for better readibility, better performances, better and more real lighting, etc...
 
-![Business Card Raytracer](../../doc/aek-new.png)
-
 ## BUILD
 
 ```

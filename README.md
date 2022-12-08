@@ -141,19 +141,19 @@ The code is more or less 20%~30% faster and the renderer supports colored ambien
 
 Before:
 
-![Before](doc/aek-old.png)
+![Before](doc/aek-original.png)
 
 After:
 
-![After](doc/aek-new.png)
+![After](doc/aek-512x512.png)
 
 Another examples:
 
-![Another example 1](doc/ponceto.png)
+![Another example 1](doc/ponceto-512x512.png)
 
-![Another example 2](doc/smiley.png)
+![Another example 2](doc/smiley-512x512.png)
 
-![Another example 3](doc/simple.png)
+![Another example 3](doc/simple-512x512.png)
 
 ## REFERENCES
 

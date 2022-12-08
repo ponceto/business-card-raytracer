@@ -2,7 +2,7 @@
 
 This is the reformatted source code of Andrew Kensler's famous `Business Card Raytracer`.
 
-![Business Card Raytracer](../../doc/aek-old.png)
+![Business Card Raytracer](../../doc/aek-original.png)
 
 ## BUILD
 
