@@ -74,7 +74,7 @@ The following example will generate a file named `output.ppm`:
 
 ## EXAMPLES
 
-![ponceto example](../../doc/ponceto.png)
+### PONCETO
 
 ```
 ./card.bin --scene=ponceto --output=ponceto.ppm
@@ -82,11 +82,15 @@ The following example will generate a file named `output.ppm`:
 
 ![ponceto example](../../doc/ponceto.png)
 
+### SMILEY
+
 ```
 ./card.bin --scene=smiley --output=smiley.ppm
 ```
 
 ![smiley example](../../doc/smiley.png)
+
+### SIMPLE
 
 ```
 ./card.bin --scene=simple --output=simple.ppm
