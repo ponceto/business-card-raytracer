@@ -856,8 +856,8 @@ public:
 
     virtual bool hit(const ray&, hit_result&) const = 0;
 
-    using pointer = std::unique_ptr<object>;
-    using vector  = std::vector<pointer>;
+    using shared_ptr = std::shared_ptr<object>;
+    using vector     = std::vector<shared_ptr>;
 
     float reflect;
     float refract;

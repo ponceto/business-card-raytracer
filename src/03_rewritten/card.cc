@@ -345,6 +345,8 @@ public:
         light_power     = float     (+15.0f);
         sky_color       = rt::col3f (+0.70f, +0.60f, +1.00f);
         sky_ambient     = rt::col3f (+0.35f, +0.35f, +0.35f);
+        floor_scale     = float     (0.2f);
+        floor_reflect   = float     (0.0f);
         sphere_radius   = float     (1.0f);
         sphere_color    = rt::col3f (+0.0f, +0.0f, +0.0f);
         sphere_reflect  = float     (0.7f);
@@ -383,6 +385,7 @@ public:
         light_power     = float     (+50.0f);
         sky_color       = rt::col3f (+0.70f, +0.60f, +1.00f);
         sky_ambient     = rt::col3f (+0.50f, +0.50f, +0.50f);
+        floor_scale     = float     (0.2f);
         floor_reflect   = float     (0.3f);
         sphere_radius   = float     (1.0f);
         sphere_color    = rt::col3f (+1.0f, +0.8f, +0.0f);
@@ -418,10 +421,11 @@ public:
         camera_dof      = float     (384.0f);
         camera_focus    = float     ( 24.0f);
         light_position  = rt::pos3f ( -5.0f, -15.0f, +16.0f);
-        light_color     = rt::col3f ( +0.3f,  +0.6f,  +0.9f);
+        light_color     = rt::col3f ( +0.7f,  +0.8f,  +0.9f);
         light_power     = float     (+50.0f);
         sky_color       = rt::col3f (+0.50f, +0.40f, +1.00f);
         sky_ambient     = rt::col3f (+0.50f, +0.50f, +0.50f);
+        floor_scale     = float     (0.3f);
         floor_reflect   = float     (0.3f);
         sphere_radius   = float     (1.0f);
         sphere_color    = rt::col3f (+0.1f, +0.2f, +0.3f);
@@ -511,7 +515,7 @@ rt::scene& get_scene(const std::string& scene_name)
 
     auto add_floor = [&]() -> bool
     {
-        std::unique_ptr<rt::floor> obj = std::make_unique<rt::floor> ( sd.floor_position
+        std::shared_ptr<rt::floor> obj = std::make_unique<rt::floor> ( sd.floor_position
                                                                      , sd.floor_normal
                                                                      , sd.floor_color1
                                                                      , sd.floor_color2
@@ -544,7 +548,7 @@ rt::scene& get_scene(const std::string& scene_name)
                     const float y = static_cast<float>(0);
                     const float z = static_cast<float>(rows - row) + row_offset;
                     const float r = sd.sphere_radius;
-                    std::unique_ptr<rt::sphere> obj = std::make_unique<rt::sphere> ( rt::pos3f(x, y, z)
+                    std::shared_ptr<rt::sphere> obj = std::make_unique<rt::sphere> ( rt::pos3f(x, y, z)
                                                                                    , sd.sphere_color
                                                                                    , r );
                     obj->reflect  = sd.sphere_reflect;
