@@ -137,7 +137,7 @@ Example:
 
 The `rewritten` version is quite like the `refactored` version but with the code heavily refactored, rewritten with a full POO approach and modern C++ features.
 
-The code is more or less 20%~30% faster and the renderer supports colored ambient lighting, colored light with attenuation, etc...
+The code is more or less 20%~30% faster and the renderer supports colored ambient lighting, colored light with attenuation, reflexions on any object, etc...
 
 Before:
 
@@ -147,9 +147,13 @@ After:
 
 ![After](doc/aek-new.png)
 
-Another example:
+Another examples:
 
-![Another example](doc/ponceto.png)
+![Another example 1](doc/ponceto.png)
+
+![Another example 2](doc/smiley.png)
+
+![Another example 3](doc/simple.png)
 
 ## REFERENCES
 

@@ -700,6 +700,9 @@ public:
         , position()
         , normal()
         , color()
+        , reflect()
+        , refract()
+        , specular()
     {
     }
 
@@ -708,6 +711,9 @@ public:
     pos3f position;
     vec3f normal;
     col3f color;
+    float reflect;
+    float refract;
+    float specular;
 };
 
 }
@@ -839,7 +845,12 @@ namespace rt {
 class object
 {
 public:
-    object() = default;
+    object()
+        : reflect(0.0f)
+        , refract(0.0f)
+        , specular(0.0f)
+    {
+    }
 
     virtual ~object() = default;
 
@@ -847,6 +858,10 @@ public:
 
     using pointer = std::unique_ptr<object>;
     using vector  = std::vector<pointer>;
+
+    float reflect;
+    float refract;
+    float specular;
 };
 
 }
@@ -864,12 +879,14 @@ public:
     floor ( const pos3f& floor_position
           , const vec3f& floor_normal
           , const col3f& floor_color1
-          , const col3f& floor_color2 )
+          , const col3f& floor_color2
+          , const float  floor_scale )
         : object()
         , position(floor_position)
         , normal(floor_normal.normalized())
         , color1(floor_color1)
         , color2(floor_color2)
+        , scale(floor_scale)
     {
     }
 
@@ -881,6 +898,7 @@ public:
     vec3f normal;
     col3f color1;
     col3f color2;
+    float scale;
 };
 
 }
@@ -957,7 +975,8 @@ public:
         return _objects;
     }
 
-    void add(object::pointer&& object_ptr)
+    template <typename T>
+    void add(T& object_ptr)
     {
         _objects.push_back(std::move(object_ptr));
     }
@@ -1024,6 +1043,7 @@ public:
 protected:
     std::string _program;
     std::string _output;
+    std::string _scene;
     int         _card_w;
     int         _card_h;
     int         _samples;

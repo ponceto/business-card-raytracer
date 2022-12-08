@@ -45,10 +45,18 @@ Options:
 
     --help                  display this help
     --output={path}         the output filename
+    --scene={scene}         the scene to render
     --width={int}           the card width
     --height={int}          the card height
     --samples={int}         samples per pixel
     --recursions={int}      maximum recursions level
+
+Scenes:
+
+    - aek
+    - ponceto
+    - smiley
+    - simple
 
 ```
 
