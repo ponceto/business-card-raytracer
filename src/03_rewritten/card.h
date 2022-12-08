@@ -1020,6 +1020,67 @@ protected:
 }
 
 // ---------------------------------------------------------------------------
+// card::scene_factory
+// ---------------------------------------------------------------------------
+
+namespace card {
+
+class scene_factory
+{
+public:
+    scene_factory(const std::string& scene_name);
+
+    virtual ~scene_factory() = default;
+
+    static std::shared_ptr<rt::scene> create(const std::string& scene_name);
+
+protected:
+    void initialize();
+
+    void initialize_default();
+
+    void initialize_aek();
+
+    void initialize_ponceto();
+
+    void initialize_smiley();
+
+    void initialize_simple();
+
+    std::shared_ptr<rt::scene> build();
+
+protected:
+    std::string _name;
+    uint32_t    _world[16];
+    rt::pos3f   _camera_position;
+    rt::pos3f   _camera_target;
+    rt::pos3f   _camera_top;
+    float       _camera_fov;
+    float       _camera_dof;
+    float       _camera_focus;
+    rt::pos3f   _light_position;
+    rt::col3f   _light_color;
+    float       _light_power;
+    rt::col3f   _sky_color;
+    rt::col3f   _sky_ambient;
+    rt::pos3f   _floor_position;
+    rt::vec3f   _floor_normal;
+    rt::col3f   _floor_color1;
+    rt::col3f   _floor_color2;
+    float       _floor_scale;
+    float       _floor_reflect;
+    float       _floor_refract;
+    float       _floor_specular;
+    float       _sphere_radius;
+    rt::col3f   _sphere_color;
+    float       _sphere_reflect;
+    float       _sphere_refract;
+    float       _sphere_specular;
+};
+
+}
+
+// ---------------------------------------------------------------------------
 // card::generator
 // ---------------------------------------------------------------------------
 

@@ -258,325 +258,6 @@ void writer::close()
 }
 
 // ---------------------------------------------------------------------------
-// setup::scene_descritor
-// ---------------------------------------------------------------------------
-
-namespace setup {
-
-class scene_descritor
-{
-public:
-    scene_descritor(const std::string& scene_name)
-        : name(scene_name)
-        , world()
-        , camera_position(+3.5f, -5.0f, +1.7f)
-        , camera_target(+0.25f, 0.0f, +1.0f)
-        , camera_top(+3.5f, -5.0f, +2.7f)
-        , camera_fov(0.002f)
-        , camera_dof(99.0)
-        , camera_focus(5.0)
-        , light_position(+7.0f, -5.0f, +3.0f)
-        , light_color(+0.90f, +0.95f, +1.00f)
-        , light_power(20.0f)
-        , sky_color(+0.25, +0.75f, +1.00f)
-        , sky_ambient(+0.35f, +0.35f, +0.35f)
-        , floor_position(0.0f, 0.0f, 0.0f)
-        , floor_normal(0.0f, 0.0f, 1.0f)
-        , floor_color1(+1.00f, +0.30f, +0.30f)
-        , floor_color2(+1.00f, +1.00f, +1.00f)
-        , floor_scale(1.0f)
-        , floor_reflect(0.2f)
-        , floor_refract(0.0f)
-        , floor_specular(0.0f)
-        , sphere_radius(1.0f)
-        , sphere_color(0.20f, 0.25f, 0.15f)
-        , sphere_reflect(0.5f)
-        , sphere_refract(0.0f)
-        , sphere_specular(50.0f)
-    {
-        setup();
-    }
-
-    void setup()
-    {
-        if(name == "aek") {
-            return setup_aek();
-        }
-        if(name == "ponceto") {
-            return setup_ponceto();
-        }
-        if(name == "smiley") {
-            return setup_smiley();
-        }
-        if(name == "simple") {
-            return setup_simple();
-        }
-        throw std::runtime_error(std::string("invalid scene") + ' ' + '<' + name + '>');
-    }
-
-    void setup_aek()
-    {
-        int row = 0;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000010000000000;
-        world[row++] = 0b00000000000000000000010000000000;
-        world[row++] = 0b00000000111000011100010000000000;
-        world[row++] = 0b00000000000100100010010001000000;
-        world[row++] = 0b00000000000100100010010010000000;
-        world[row++] = 0b00000000111100111110010100000000;
-        world[row++] = 0b00000001000100100000011000000000;
-        world[row++] = 0b00000001000100100000010100000000;
-        world[row++] = 0b00000000111100011100010010000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-
-        camera_position = rt::pos3f (-7.0f, -16.0f,  +8.0f);
-        camera_target   = rt::pos3f (-1.0f,   0.0f,  +8.0f);
-        camera_top      = rt::pos3f (-7.0f, -16.0f,  +9.0f);
-        camera_fov      = float     (0.002f);
-        camera_dof      = float     ( 99.0f);
-        camera_focus    = float     ( 16.0f);
-        light_position  = rt::pos3f ( +0.5f,  -9.5f, +16.0f);
-        light_color     = rt::col3f (+1.00f, +1.00f, +1.00f);
-        light_power     = float     (+15.0f);
-        sky_color       = rt::col3f (+0.70f, +0.60f, +1.00f);
-        sky_ambient     = rt::col3f (+0.35f, +0.35f, +0.35f);
-        floor_scale     = float     (0.2f);
-        floor_reflect   = float     (0.0f);
-        sphere_radius   = float     (1.0f);
-        sphere_color    = rt::col3f (+0.0f, +0.0f, +0.0f);
-        sphere_reflect  = float     (0.7f);
-        sphere_refract  = float     (0.0f);
-        sphere_specular = float     (99.0f);
-    }
-
-    void setup_ponceto()
-    {
-        int row = 0;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b11100011001001001110111101110110;
-        world[row++] = 0b10010100101001010000100000101001;
-        world[row++] = 0b10010100101101010000100000101001;
-        world[row++] = 0b11100100101101010000111000101001;
-        world[row++] = 0b10000100101011010000100000101001;
-        world[row++] = 0b10000100101011010000100000101001;
-        world[row++] = 0b10000011001001001110111100100110;
-
-        camera_position = rt::pos3f (-19.0f, -19.0f, +15.0f);
-        camera_target   = rt::pos3f ( -5.0f,   0.0f,  +7.0f);
-        camera_top      = rt::pos3f (-19.0f, -19.0f, +16.0f);
-        camera_fov      = float     (0.002f);
-        camera_dof      = float     (256.0f);
-        camera_focus    = float     ( 25.0f);
-        light_position  = rt::pos3f ( +5.0f, -15.0f, +15.0f);
-        light_color     = rt::col3f ( +0.5f,  +0.7f,  +0.9f);
-        light_power     = float     (+50.0f);
-        sky_color       = rt::col3f (+0.70f, +0.60f, +1.00f);
-        sky_ambient     = rt::col3f (+0.50f, +0.50f, +0.50f);
-        floor_scale     = float     (0.2f);
-        floor_reflect   = float     (0.3f);
-        sphere_radius   = float     (1.0f);
-        sphere_color    = rt::col3f (+1.0f, +0.8f, +0.0f);
-        sphere_reflect  = float     (0.7f);
-        sphere_refract  = float     (0.0f);
-        sphere_specular = float     (99.0f);
-    }
-
-    void setup_smiley()
-    {
-        int row = 0;
-        world[row++] = 0b00000000000001111110000000000000;
-        world[row++] = 0b00000000000110000001100000000000;
-        world[row++] = 0b00000000001000000000010000000000;
-        world[row++] = 0b00000000010000000000001000000000;
-        world[row++] = 0b00000000010001100110001000000000;
-        world[row++] = 0b00000000100001100110000100000000;
-        world[row++] = 0b00000000100000000000000100000000;
-        world[row++] = 0b00000000100000000000000100000000;
-        world[row++] = 0b00000000100000000000000100000000;
-        world[row++] = 0b00000000100100000000100100000000;
-        world[row++] = 0b00000000100010000001000100000000;
-        world[row++] = 0b00000000010001111110001000000000;
-        world[row++] = 0b00000000010000000000001000000000;
-        world[row++] = 0b00000000001000000000010000000000;
-        world[row++] = 0b00000000000110000001100000000000;
-        world[row++] = 0b00000000000001111110000000000000;
-
-        camera_position = rt::pos3f (+19.0f, -17.0f, +15.0f);
-        camera_target   = rt::pos3f ( +2.0f,   0.0f, +8.0f);
-        camera_top      = rt::pos3f (+19.0f, -17.0f, +16.0f);
-        camera_fov      = float     (0.002f);
-        camera_dof      = float     (384.0f);
-        camera_focus    = float     ( 24.0f);
-        light_position  = rt::pos3f ( -5.0f, -15.0f, +16.0f);
-        light_color     = rt::col3f ( +0.7f,  +0.8f,  +0.9f);
-        light_power     = float     (+50.0f);
-        sky_color       = rt::col3f (+0.50f, +0.40f, +1.00f);
-        sky_ambient     = rt::col3f (+0.50f, +0.50f, +0.50f);
-        floor_scale     = float     (0.3f);
-        floor_reflect   = float     (0.3f);
-        sphere_radius   = float     (1.0f);
-        sphere_color    = rt::col3f (+0.1f, +0.2f, +0.3f);
-        sphere_reflect  = float     (0.7f);
-        sphere_refract  = float     (0.0f);
-        sphere_specular = float     (99.0f);
-    }
-
-    void setup_simple()
-    {
-        int row = 0;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000000000000000000000;
-        world[row++] = 0b00000000000000100100000000000000;
-    }
-
-    std::string name;
-    uint32_t    world[16];
-    rt::pos3f   camera_position;
-    rt::pos3f   camera_target;
-    rt::pos3f   camera_top;
-    float       camera_fov;
-    float       camera_dof;
-    float       camera_focus;
-    rt::pos3f   light_position;
-    rt::col3f   light_color;
-    float       light_power;
-    rt::col3f   sky_color;
-    rt::col3f   sky_ambient;
-    rt::pos3f   floor_position;
-    rt::vec3f   floor_normal;
-    rt::col3f   floor_color1;
-    rt::col3f   floor_color2;
-    float       floor_scale;
-    float       floor_reflect;
-    float       floor_refract;
-    float       floor_specular;
-    float       sphere_radius;
-    rt::col3f   sphere_color;
-    float       sphere_reflect;
-    float       sphere_refract;
-    float       sphere_specular;
-};
-
-}
-
-// ---------------------------------------------------------------------------
-// setup
-// ---------------------------------------------------------------------------
-
-namespace setup {
-
-rt::scene& get_scene(const std::string& scene_name)
-{
-    scene_descritor sd(scene_name);
-
-    static rt::camera camera ( sd.camera_position
-                             , sd.camera_target
-                             , sd.camera_top
-                             , sd.camera_fov
-                             , sd.camera_dof
-                             , sd.camera_focus );
-
-    static rt::light light   ( sd.light_position
-                             , sd.light_color
-                             , sd.light_power );
-
-    static rt::sky sky       ( sd.sky_color
-                             , sd.sky_ambient );
-
-    static rt::scene scene   ( camera
-                             , light
-                             , sky );
-
-    auto add_floor = [&]() -> bool
-    {
-        std::shared_ptr<rt::floor> obj = std::make_unique<rt::floor> ( sd.floor_position
-                                                                     , sd.floor_normal
-                                                                     , sd.floor_color1
-                                                                     , sd.floor_color2
-                                                                     , sd.floor_scale );
-        obj->reflect  = sd.floor_reflect;
-        obj->refract  = sd.floor_refract;
-        obj->specular = sd.floor_specular;
-
-        scene.add(obj);
-
-        return true;
-    };
-
-    auto add_spheres = [&]() -> bool
-    {
-        constexpr int cols         = 32;
-        constexpr int rows         = countof(sd.world);
-        constexpr float col_offset = -16.0f;
-        constexpr float row_offset =   0.0f;
-
-        for(int row = 0; row < rows; ++row) {
-            uint32_t constexpr lsb = (1 << 0);
-            uint32_t           val = sd.world[row];
-            if(val == 0) {
-                continue;
-            }
-            for(int col = 0; col < cols; ++col) {
-                if(val & lsb) {
-                    const float x = static_cast<float>(cols - col) + col_offset;
-                    const float y = static_cast<float>(0);
-                    const float z = static_cast<float>(rows - row) + row_offset;
-                    const float r = sd.sphere_radius;
-                    std::shared_ptr<rt::sphere> obj = std::make_unique<rt::sphere> ( rt::pos3f(x, y, z)
-                                                                                   , sd.sphere_color
-                                                                                   , r );
-                    obj->reflect  = sd.sphere_reflect;
-                    obj->refract  = sd.sphere_refract;
-                    obj->specular = sd.sphere_specular;
-
-                    scene.add(obj);
-                }
-                if((val >>= 1) == 0) {
-                    break;
-                }
-            }
-        }
-        return true;
-    };
-
-    static bool floor   = add_floor();
-    static bool spheres = add_spheres();
-
-    static_cast<void>(floor);
-    static_cast<void>(spheres);
-
-    return scene;
-}
-
-}
-
-// ---------------------------------------------------------------------------
 // rt::object
 // ---------------------------------------------------------------------------
 
@@ -799,6 +480,318 @@ void raytracer::render(ppm::writer& output, const int w, const int h, const int 
 }
 
 // ---------------------------------------------------------------------------
+// card::scene_factory
+// ---------------------------------------------------------------------------
+
+namespace card {
+
+scene_factory::scene_factory(const std::string& scene_name)
+    : _name(scene_name)
+    , _world()
+    , _camera_position()
+    , _camera_target()
+    , _camera_top()
+    , _camera_fov()
+    , _camera_dof()
+    , _camera_focus()
+    , _light_position()
+    , _light_color()
+    , _light_power()
+    , _sky_color()
+    , _sky_ambient()
+    , _floor_position()
+    , _floor_normal()
+    , _floor_color1()
+    , _floor_color2()
+    , _floor_scale()
+    , _floor_reflect()
+    , _floor_refract()
+    , _floor_specular()
+    , _sphere_radius()
+    , _sphere_color()
+    , _sphere_reflect()
+    , _sphere_refract()
+    , _sphere_specular()
+{
+    initialize();
+}
+
+std::shared_ptr<rt::scene> scene_factory::create(const std::string& scene_name)
+{
+    scene_factory sb(scene_name);
+
+    return sb.build();
+}
+
+void scene_factory::initialize()
+{
+    initialize_default();
+
+    if(_name == "aek") {
+        return initialize_aek();
+    }
+    if(_name == "ponceto") {
+        return initialize_ponceto();
+    }
+    if(_name == "smiley") {
+        return initialize_smiley();
+    }
+    if(_name == "simple") {
+        return initialize_simple();
+    }
+    throw std::runtime_error(std::string("invalid scene") + ' ' + '<' + _name + '>');
+}
+
+void scene_factory::initialize_default()
+{
+    for(auto& world : _world) {
+        world = 0;
+    }
+
+    _camera_position = rt::pos3f (+3.5f, -5.0f, +1.7f);
+    _camera_target   = rt::pos3f (+0.25f, 0.0f, +1.0f);
+    _camera_top      = rt::pos3f (+3.5f, -5.0f, +2.7f);
+    _camera_fov      = float     (0.002f);
+    _camera_dof      = float     (99.0);
+    _camera_focus    = float     (5.0);
+    _light_position  = rt::pos3f (+7.0f, -5.0f, +3.0f);
+    _light_color     = rt::col3f (+0.90f, +0.95f, +1.00f);
+    _light_power     = float     (20.0f);
+    _sky_color       = rt::col3f (+0.25, +0.75f, +1.00f);
+    _sky_ambient     = rt::col3f (+0.35f, +0.35f, +0.35f);
+    _floor_position  = rt::pos3f (0.0f, 0.0f, 0.0f);
+    _floor_normal    = rt::vec3f (0.0f, 0.0f, 1.0f);
+    _floor_color1    = rt::col3f (+1.00f, +0.30f, +0.30f);
+    _floor_color2    = rt::col3f (+1.00f, +1.00f, +1.00f);
+    _floor_scale     = float     (1.0f);
+    _floor_reflect   = float     (0.2f);
+    _floor_refract   = float     (0.0f);
+    _floor_specular  = float     (0.0f);
+    _sphere_radius   = float     (1.0f);
+    _sphere_color    = rt::col3f (0.20f, 0.25f, 0.15f);
+    _sphere_reflect  = float     (0.5f);
+    _sphere_refract  = float     (0.0f);
+    _sphere_specular = float     (50.0f);
+}
+
+void scene_factory::initialize_aek()
+{
+    int row = 0;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000010000000000;
+    _world[row++] = 0b00000000000000000000010000000000;
+    _world[row++] = 0b00000000111000011100010000000000;
+    _world[row++] = 0b00000000000100100010010001000000;
+    _world[row++] = 0b00000000000100100010010010000000;
+    _world[row++] = 0b00000000111100111110010100000000;
+    _world[row++] = 0b00000001000100100000011000000000;
+    _world[row++] = 0b00000001000100100000010100000000;
+    _world[row++] = 0b00000000111100011100010010000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+
+    _camera_position = rt::pos3f (-7.0f, -16.0f,  +8.0f);
+    _camera_target   = rt::pos3f (-1.0f,   0.0f,  +8.0f);
+    _camera_top      = rt::pos3f (-7.0f, -16.0f,  +9.0f);
+    _camera_fov      = float     (0.002f);
+    _camera_dof      = float     ( 99.0f);
+    _camera_focus    = float     ( 16.0f);
+    _light_position  = rt::pos3f ( +0.5f,  -9.5f, +16.0f);
+    _light_color     = rt::col3f (+1.00f, +1.00f, +1.00f);
+    _light_power     = float     (+15.0f);
+    _sky_color       = rt::col3f (+0.70f, +0.60f, +1.00f);
+    _sky_ambient     = rt::col3f (+0.35f, +0.35f, +0.35f);
+    _floor_scale     = float     (0.2f);
+    _floor_reflect   = float     (0.0f);
+    _sphere_radius   = float     (1.0f);
+    _sphere_color    = rt::col3f (+0.0f, +0.0f, +0.0f);
+    _sphere_reflect  = float     (0.7f);
+    _sphere_refract  = float     (0.0f);
+    _sphere_specular = float     (99.0f);
+}
+
+void scene_factory::initialize_ponceto()
+{
+    int row = 0;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b11100011001001001110111101110110;
+    _world[row++] = 0b10010100101001010000100000101001;
+    _world[row++] = 0b10010100101101010000100000101001;
+    _world[row++] = 0b11100100101101010000111000101001;
+    _world[row++] = 0b10000100101011010000100000101001;
+    _world[row++] = 0b10000100101011010000100000101001;
+    _world[row++] = 0b10000011001001001110111100100110;
+
+    _camera_position = rt::pos3f (-19.0f, -19.0f, +15.0f);
+    _camera_target   = rt::pos3f ( -5.0f,   0.0f,  +7.0f);
+    _camera_top      = rt::pos3f (-19.0f, -19.0f, +16.0f);
+    _camera_fov      = float     (0.002f);
+    _camera_dof      = float     (256.0f);
+    _camera_focus    = float     ( 25.0f);
+    _light_position  = rt::pos3f ( +5.0f, -15.0f, +15.0f);
+    _light_color     = rt::col3f ( +0.5f,  +0.7f,  +0.9f);
+    _light_power     = float     (+50.0f);
+    _sky_color       = rt::col3f (+0.70f, +0.60f, +1.00f);
+    _sky_ambient     = rt::col3f (+0.50f, +0.50f, +0.50f);
+    _floor_scale     = float     (0.2f);
+    _floor_reflect   = float     (0.3f);
+    _sphere_radius   = float     (1.0f);
+    _sphere_color    = rt::col3f (+1.0f, +0.8f, +0.0f);
+    _sphere_reflect  = float     (0.7f);
+    _sphere_refract  = float     (0.0f);
+    _sphere_specular = float     (99.0f);
+}
+
+void scene_factory::initialize_smiley()
+{
+    int row = 0;
+    _world[row++] = 0b00000000000001111110000000000000;
+    _world[row++] = 0b00000000000110000001100000000000;
+    _world[row++] = 0b00000000001000000000010000000000;
+    _world[row++] = 0b00000000010000000000001000000000;
+    _world[row++] = 0b00000000010001100110001000000000;
+    _world[row++] = 0b00000000100001100110000100000000;
+    _world[row++] = 0b00000000100000000000000100000000;
+    _world[row++] = 0b00000000100000000000000100000000;
+    _world[row++] = 0b00000000100000000000000100000000;
+    _world[row++] = 0b00000000100100000000100100000000;
+    _world[row++] = 0b00000000100010000001000100000000;
+    _world[row++] = 0b00000000010001111110001000000000;
+    _world[row++] = 0b00000000010000000000001000000000;
+    _world[row++] = 0b00000000001000000000010000000000;
+    _world[row++] = 0b00000000000110000001100000000000;
+    _world[row++] = 0b00000000000001111110000000000000;
+
+    _camera_position = rt::pos3f (+19.0f, -17.0f, +15.0f);
+    _camera_target   = rt::pos3f ( +2.0f,   0.0f, +8.0f);
+    _camera_top      = rt::pos3f (+19.0f, -17.0f, +16.0f);
+    _camera_fov      = float     (0.002f);
+    _camera_dof      = float     (384.0f);
+    _camera_focus    = float     ( 24.0f);
+    _light_position  = rt::pos3f ( -5.0f, -15.0f, +16.0f);
+    _light_color     = rt::col3f ( +0.7f,  +0.8f,  +0.9f);
+    _light_power     = float     (+50.0f);
+    _sky_color       = rt::col3f (+0.50f, +0.40f, +1.00f);
+    _sky_ambient     = rt::col3f (+0.50f, +0.50f, +0.50f);
+    _floor_scale     = float     (0.3f);
+    _floor_reflect   = float     (0.3f);
+    _sphere_radius   = float     (1.0f);
+    _sphere_color    = rt::col3f (+0.1f, +0.2f, +0.3f);
+    _sphere_reflect  = float     (0.7f);
+    _sphere_refract  = float     (0.0f);
+    _sphere_specular = float     (99.0f);
+}
+
+void scene_factory::initialize_simple()
+{
+    int row = 0;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000000000000000000000;
+    _world[row++] = 0b00000000000000100100000000000000;
+}
+
+std::shared_ptr<rt::scene> scene_factory::build()
+{
+    auto add_floor = [&](rt::scene& scene) -> void
+    {
+        std::shared_ptr<rt::floor> obj = std::make_shared<rt::floor> ( _floor_position
+                                                                     , _floor_normal
+                                                                     , _floor_color1
+                                                                     , _floor_color2
+                                                                     , _floor_scale );
+        obj->reflect  = _floor_reflect;
+        obj->refract  = _floor_refract;
+        obj->specular = _floor_specular;
+
+        scene.add(obj);
+    };
+
+    auto add_spheres = [&](rt::scene& scene) -> void
+    {
+        constexpr int cols         = 32;
+        constexpr int rows         = countof(_world);
+        constexpr float col_offset = -16.0f;
+        constexpr float row_offset =   0.0f;
+
+        for(int row = 0; row < rows; ++row) {
+            uint32_t constexpr lsb = (1 << 0);
+            uint32_t           val = _world[row];
+            if(val == 0) {
+                continue;
+            }
+            for(int col = 0; col < cols; ++col) {
+                if(val & lsb) {
+                    const float x = static_cast<float>(cols - col) + col_offset;
+                    const float y = static_cast<float>(0);
+                    const float z = static_cast<float>(rows - row) + row_offset;
+                    const float r = _sphere_radius;
+                    std::shared_ptr<rt::sphere> obj = std::make_shared<rt::sphere> ( rt::pos3f(x, y, z)
+                                                                                   , _sphere_color
+                                                                                   , r );
+                    obj->reflect  = _sphere_reflect;
+                    obj->refract  = _sphere_refract;
+                    obj->specular = _sphere_specular;
+
+                    scene.add(obj);
+                }
+                if((val >>= 1) == 0) {
+                    break;
+                }
+            }
+        }
+    };
+
+    const rt::camera camera ( _camera_position
+                            , _camera_target
+                            , _camera_top
+                            , _camera_fov
+                            , _camera_dof
+                            , _camera_focus );
+
+    const rt::light light   ( _light_position
+                            , _light_color
+                            , _light_power );
+
+    const rt::sky sky       ( _sky_color
+                            , _sky_ambient );
+
+    const std::shared_ptr<rt::scene> scene(std::make_shared<rt::scene>(camera, light, sky));
+
+    add_floor(*scene);
+
+    add_spheres(*scene);
+
+    return scene;
+}
+
+}
+
+// ---------------------------------------------------------------------------
 // card::generator
 // ---------------------------------------------------------------------------
 
@@ -849,7 +842,8 @@ void generator::main()
     auto render = [&]() -> void
     {
         ppm::writer output(_output);
-        card::raytracer raytracer(*this, setup::get_scene(_scene));
+        const std::shared_ptr<rt::scene> scene(scene_factory::create(_scene));
+        card::raytracer raytracer(*this, *scene);
 
         output.open(_card_w, _card_h, 255);
         begin();
