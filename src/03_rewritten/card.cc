@@ -290,8 +290,8 @@ bool floor::hit(const ray& ray, hit_result& result) const
         result.position = (ray.origin + (ray.direction * result.distance));
         result.normal   = normal;
         result.color    = color();
-        result.refract  = refract;
         result.reflect  = reflect;
+        result.refract  = refract;
         result.specular = specular;
         return true;
     }
@@ -326,8 +326,8 @@ bool sphere::hit(const ray& ray, hit_result& result) const
             result.position = (ray.origin + (ray.direction * result.distance));
             result.normal   = vec3f::normalize(oc + ray.direction * result.distance);
             result.color    = color;
-            result.refract  = refract;
             result.reflect  = reflect;
+            result.refract  = refract;
             result.specular = specular;
             return true;
         }
@@ -348,8 +348,8 @@ bool sphere::hit(const ray& ray, hit_result& result) const
             result.position = (ray.origin + (ray.direction * result.distance));
             result.normal   = vec3f::normalize(oc + ray.direction * result.distance);
             result.color    = color;
-            result.refract  = refract;
             result.reflect  = reflect;
+            result.refract  = refract;
             result.specular = specular;
             return true;
         }
