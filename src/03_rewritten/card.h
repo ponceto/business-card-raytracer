@@ -669,23 +669,6 @@ using col3f = gl::col3f;
 }
 
 // ---------------------------------------------------------------------------
-// rt::traits
-// ---------------------------------------------------------------------------
-
-namespace rt {
-
-struct traits
-{
-    static constexpr float DISTANCE_MAX = 1e+9f;
-    static constexpr float DISTANCE_MIN = 1e-5f;
-    static constexpr int   SKY_HIT      = 0;
-    static constexpr int   FLOOR_HIT    = 1;
-    static constexpr int   SPHERE_HIT   = 2;
-};
-
-}
-
-// ---------------------------------------------------------------------------
 // rt::hit_result
 // ---------------------------------------------------------------------------
 
@@ -695,8 +678,7 @@ class hit_result
 {
 public:
     hit_result()
-        : type(traits::SKY_HIT)
-        , distance(traits::DISTANCE_MAX)
+        : distance(DISTANCE_MAX)
         , position()
         , normal()
         , color()
@@ -706,7 +688,9 @@ public:
     {
     }
 
-    int   type;
+    static constexpr float DISTANCE_MAX = 1e+9f;
+    static constexpr float DISTANCE_MIN = 1e-5f;
+
     float distance;
     pos3f position;
     vec3f normal;
@@ -1008,7 +992,7 @@ public:
 protected:
     rt::col3f trace(const rt::ray& ray, const int depth);
 
-    int hit(const rt::ray& ray, rt::hit_result& result);
+    bool hit(const rt::ray& ray, rt::hit_result& result);
 
 protected:
     base::console&   _console;

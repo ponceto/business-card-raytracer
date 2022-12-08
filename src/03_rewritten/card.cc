@@ -282,10 +282,11 @@ bool floor::hit(const ray& ray, hit_result& result) const
         return (c != 0 ? color1 : color2);
     };
 
-    const float distance = -ray.origin.z / ray.direction.z;
-    if((distance > traits::DISTANCE_MIN) && (distance < result.distance)) {
-        result.type     = traits::FLOOR_HIT;
-        result.distance = distance - traits::DISTANCE_MIN;
+    constexpr float distance_min = hit_result::DISTANCE_MIN;
+    const     float distance_max = result.distance;
+    const     float distance_hit = -ray.origin.z / ray.direction.z;
+    if((distance_hit > distance_min) && (distance_hit < distance_max)) {
+        result.distance = distance_hit - distance_min;
         result.position = (ray.origin + (ray.direction * result.distance));
         result.normal   = normal;
         result.color    = color();
@@ -317,10 +318,11 @@ bool sphere::hit(const ray& ray, hit_result& result) const
     const float c = vec3f::dot(oc, oc) - (radius * radius);
     const float delta = ((b * b) - (4.0 * a * c));
     if(delta > 0.0) {
-        const float distance = ((-b - ::sqrtf(delta)) / (2.0f * a));
-        if((distance > traits::DISTANCE_MIN) && (distance < result.distance)) {
-            result.type     = traits::SPHERE_HIT;
-            result.distance = distance - traits::DISTANCE_MIN;
+        constexpr float distance_min = hit_result::DISTANCE_MIN;
+        const     float distance_max = result.distance;
+        const     float distance_hit = ((-b - ::sqrtf(delta)) / (2.0f * a));
+        if((distance_hit > distance_min) && (distance_hit < distance_max)) {
+            result.distance = distance_hit - distance_min;
             result.position = (ray.origin + (ray.direction * result.distance));
             result.normal   = vec3f::normalize(oc + ray.direction * result.distance);
             result.color    = color;
@@ -338,10 +340,11 @@ bool sphere::hit(const ray& ray, hit_result& result) const
     const float c = vec3f::dot(oc, oc) - (radius * radius);
     const float delta = ((b * b) - c);
     if(delta > 0.0) {
-        const float distance = (-b - ::sqrtf(delta));
-        if((distance > traits::DISTANCE_MIN) && (distance < result.distance)) {
-            result.type     = traits::SPHERE_HIT;
-            result.distance = distance - traits::DISTANCE_MIN;
+        constexpr float distance_min = hit_result::DISTANCE_MIN;
+        const     float distance_max = result.distance;
+        const     float distance_hit = (-b - ::sqrtf(delta));
+        if((distance_hit > distance_min) && (distance_hit < distance_max)) {
+            result.distance = distance_hit - distance_min;
             result.position = (ray.origin + (ray.direction * result.distance));
             result.normal   = vec3f::normalize(oc + ray.direction * result.distance);
             result.color    = color;
@@ -371,19 +374,16 @@ raytracer::raytracer(base::console& console, const rt::scene& scene)
 {
 }
 
-int raytracer::hit(const rt::ray& ray, rt::hit_result& result)
+bool raytracer::hit(const rt::ray& ray, rt::hit_result& result)
 {
-    auto hit_objects = [&]() -> void
-    {
-        const auto& objects = _scene.get_objects();
-        for(auto& object : objects) {
-            static_cast<void>(object->hit(ray, result));
-        }
-    };
+    bool status = false;
 
-    hit_objects();
+    const auto& objects = _scene.get_objects();
+    for(auto& object : objects) {
+        status |= object->hit(ray, result);
+    }
 
-    return result.type;
+    return status;
 }
 
 rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
@@ -396,7 +396,7 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
     }
 
     rt::hit_result result;
-    if(hit(ray, result) == rt::traits::SKY_HIT) {
+    if(hit(ray, result) == false) {
         return sky.color * ::powf(1.0f - ray.direction.z, 4.0f);
     }
 
@@ -412,9 +412,14 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
     float diffusion   = rt::vec3f::dot(light_dir, result.normal);
 
     /* cast shadows */ {
-        rt::hit_result dummy;
-        if((diffusion < 0.0f) || hit(rt::ray(result.position, light_dir), dummy)) {
+        if(diffusion < 0.0f) {
             diffusion = 0.0f;
+        }
+        else {
+            rt::hit_result dummy;
+            if(hit(rt::ray(result.position, light_dir), dummy) != false) {
+                diffusion = 0.0f;
+            }
         }
     }
 
