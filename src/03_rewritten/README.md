@@ -75,7 +75,7 @@ The following example will generate a file named `output.ppm`:
 ### AEK
 
 ```
-./card.bin --scene=aek --width=960 --height=540 --samples=256 --output=aek.ppm
+./card.bin --scene=aek --width=960 --height=540 --samples=1024 --output=aek.ppm
 ```
 
 ![aek](../../doc/aek-960x540.png)
@@ -83,7 +83,7 @@ The following example will generate a file named `output.ppm`:
 ### PONCETO
 
 ```
-./card.bin --scene=ponceto --width=960 --height=540 --samples=256 --output=ponceto.ppm
+./card.bin --scene=ponceto --width=960 --height=540 --samples=1024 --output=ponceto.ppm
 ```
 
 ![ponceto](../../doc/ponceto-960x540.png)
@@ -91,7 +91,7 @@ The following example will generate a file named `output.ppm`:
 ### SMILEY
 
 ```
-./card.bin --scene=smiley --width=960 --height=540 --samples=256 --output=smiley.ppm
+./card.bin --scene=smiley --width=960 --height=540 --samples=1024 --output=smiley.ppm
 ```
 
 ![smiley](../../doc/smiley-960x540.png)
@@ -99,7 +99,7 @@ The following example will generate a file named `output.ppm`:
 ### SIMPLE
 
 ```
-./card.bin --scene=simple --width=960 --height=540 --samples=256 --output=simple.ppm
+./card.bin --scene=simple --width=960 --height=540 --samples=1024 --output=simple.ppm
 ```
 
 ![simple](../../doc/simple-960x540.png)
