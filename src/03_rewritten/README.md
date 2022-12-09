@@ -78,7 +78,7 @@ The following example will generate a file named `output.ppm`:
 ./card.bin --scene=aek --width=960 --height=540 --samples=1024 --output=aek.ppm
 ```
 
-![aek](../../doc/aek-960x540.png)
+![aek](../../doc/aek-1920x1080-q1024.png)
 
 ### PONCETO
 
@@ -86,7 +86,7 @@ The following example will generate a file named `output.ppm`:
 ./card.bin --scene=ponceto --width=960 --height=540 --samples=1024 --output=ponceto.ppm
 ```
 
-![ponceto](../../doc/ponceto-960x540.png)
+![ponceto](../../doc/ponceto-1920x1080-q1024.png)
 
 ### SMILEY
 
@@ -94,7 +94,7 @@ The following example will generate a file named `output.ppm`:
 ./card.bin --scene=smiley --width=960 --height=540 --samples=1024 --output=smiley.ppm
 ```
 
-![smiley](../../doc/smiley-960x540.png)
+![smiley](../../doc/smiley-1920x1080-q1024.png)
 
 ### SIMPLE
 
@@ -102,5 +102,46 @@ The following example will generate a file named `output.ppm`:
 ./card.bin --scene=simple --width=960 --height=540 --samples=1024 --output=simple.ppm
 ```
 
-![simple](../../doc/simple-960x540.png)
+![simple](../../doc/simple-1920x1080-q1024.png)
 
+## TESTING
+
+You can also use `render-all.sh` script to render all scenes while specifying resolution and quality.
+
+```
+Usage: render-all.sh [ARGUMENTS...]
+
+Arguments:
+
+    help, --help            display this help
+
+    default                 resolution of 512x512, 64 samples per pixel
+
+    tiny                    set resolution to 384x216
+    small                   set resolution to 480x270
+    medium                  set resolution to 960x540
+    large                   set resolution to 1440x810
+    huge                    set resolution to 1920x1080
+
+    q8                      set quality to 8 samples per pixel
+    q16                     set quality to 16 samples per pixel
+    q32                     set quality to 32 samples per pixel
+    q64                     set quality to 64 samples per pixel
+    q128                    set quality to 128 samples per pixel
+    q256                    set quality to 256 samples per pixel
+    q512                    set quality to 512 samples per pixel
+    q1024                   set quality to 1024 samples per pixel
+
+```
+
+Example: render all scenes at the lower resolution/quality.
+
+```
+./render-all.sh tiny q8
+```
+
+Example: render all scenes at the higher resolution/quality.
+
+```
+./render-all.sh huge q1024
+```

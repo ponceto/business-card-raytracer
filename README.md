@@ -2,7 +2,7 @@
 
 This is the source code analysis and refactoring of Andrew Kensler's famous `Business Card Raytracer`.
 
-![Business Card Raytracer](doc/aek-old.png)
+![Business Card Raytracer](doc/aek-original.png)
 
 ## PREAMBLE
 
@@ -145,15 +145,15 @@ Before:
 
 After:
 
-![After](doc/aek-512x512.png)
+![After](doc/aek-512x512-q64.png)
 
 Another examples:
 
-![Another example 1](doc/ponceto-512x512.png)
+![Another example 1](doc/ponceto-512x512-q64.png)
 
-![Another example 2](doc/smiley-512x512.png)
+![Another example 2](doc/smiley-512x512-q64.png)
 
-![Another example 3](doc/simple-512x512.png)
+![Another example 3](doc/simple-512x512-q64.png)
 
 ## REFERENCES
 
