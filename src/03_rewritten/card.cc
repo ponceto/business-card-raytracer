@@ -286,7 +286,7 @@ bool floor::hit(const ray& ray, hit_result& result) const
     const     float distance_max = result.distance;
     const     float distance_hit = -ray.origin.z / ray.direction.z;
     if((distance_hit > distance_min) && (distance_hit < distance_max)) {
-        result.distance = distance_hit - distance_min;
+        result.distance = distance_hit;
         result.position = (ray.origin + (ray.direction * result.distance));
         result.normal   = normal;
         result.color    = color();
@@ -322,7 +322,7 @@ bool sphere::hit(const ray& ray, hit_result& result) const
         const     float distance_max = result.distance;
         const     float distance_hit = ((-b - ::sqrtf(delta)) / (2.0f * a));
         if((distance_hit > distance_min) && (distance_hit < distance_max)) {
-            result.distance = distance_hit - distance_min;
+            result.distance = distance_hit;
             result.position = (ray.origin + (ray.direction * result.distance));
             result.normal   = vec3f::normalize(oc + ray.direction * result.distance);
             result.color    = color;
@@ -344,7 +344,7 @@ bool sphere::hit(const ray& ray, hit_result& result) const
         const     float distance_max = result.distance;
         const     float distance_hit = (-b - ::sqrtf(delta));
         if((distance_hit > distance_min) && (distance_hit < distance_max)) {
-            result.distance = distance_hit - distance_min;
+            result.distance = distance_hit;
             result.position = (ray.origin + (ray.direction * result.distance));
             result.normal   = vec3f::normalize(oc + ray.direction * result.distance);
             result.color    = color;
@@ -407,45 +407,78 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
     const rt::vec3f light_dir(rt::vec3f::normalize(rt::pos3f::difference(light_pos, result.position)));
 
     const rt::vec3f reflection(ray.direction + result.normal * (rt::vec3f::dot(result.normal, ray.direction) * -2.0f));
-    float distance    = rt::vec3f::length(rt::pos3f::difference(light.position, result.position));
-    float attenuation = 1.0f / ::sqrtf(distance / light.power);
-    float diffusion   = rt::vec3f::dot(light_dir, result.normal);
 
-    /* cast shadows */ {
-        if(diffusion < 0.0f) {
+    float light_distance = rt::vec3f::length(rt::pos3f::difference(light.position, result.position));
+    float diffusion      = rt::vec3f::dot(light_dir, result.normal);
+
+    if(diffusion < 0.0f) {
+        diffusion = 0.0f;
+    }
+
+    /* cast_shadows */ {
+        rt::hit_result dummy;
+        if(hit(rt::ray(result.position, light_dir), dummy) != false) {
             diffusion = 0.0f;
         }
-        else {
-            rt::hit_result dummy;
-            if(hit(rt::ray(result.position, light_dir), dummy) != false) {
-                diffusion = 0.0f;
-            }
+    }
+
+    rt::col3f   final_color;
+    rt::col3f   light_color(light.color * (1.0f / ::sqrtf(light_distance / light.power)));
+    const float specular_factor = result.specular;
+    const float refract_factor  = result.refract;
+    const float reflect_factor  = result.reflect;
+    const float diffuse_factor  = (1.0f - (reflect_factor + refract_factor)) * diffusion;
+    const float ambient_factor  = (1.0f - (reflect_factor + refract_factor)) * 1.0f;
+
+    auto ambient_color = [&]() -> void
+    {
+        if(ambient_factor > 0.0f) {
+            final_color += ((result.color * sky.ambient) * ambient_factor);
         }
-    }
+    };
 
-    const float reflect_coef  = result.reflect;
-    const float refract_coef  = result.refract;
-    const float diffuse_coef  = 1.0f - (reflect_coef + refract_coef);
-    const float specular_coef = result.specular;
+    auto diffuse_color = [&]() -> void
+    {
+        if(diffuse_factor > 0.0f) {
+            final_color += ((result.color * light_color) * diffuse_factor);
+        }
+    };
 
-    rt::col3f diffuse_color;
-    rt::col3f reflect_color;
-    rt::col3f specular_color;
+    auto reflect_color = [&]() -> void
+    {
+        if(reflect_factor > 0.0f) {
+            const rt::pos3f origin(ray.origin + (ray.direction * (result.distance - result.DISTANCE_MIN)));
+            const rt::vec3f direction(reflection);
+            const rt::ray   reflected_ray(origin, direction);
+            final_color += (trace(reflected_ray, (recursion - 1)) * reflect_factor);
+        }
+    };
 
-    if(diffuse_coef > 0.0f) {
-        diffuse_color = ((result.color * sky.ambient) + (result.color * light.color * diffusion * attenuation)) * diffuse_coef;
-    }
+    auto refract_color = [&]() -> void
+    {
+        if(refract_factor > 0.0f) {
+            const rt::pos3f origin(ray.origin + (ray.direction * (result.distance + result.DISTANCE_MIN)));
+            const rt::vec3f direction(ray.direction);
+            const rt::ray   refracted_ray(origin, direction);
+            final_color += (trace(refracted_ray, (recursion - 1)) * refract_factor);
+        }
+    };
 
-    if(reflect_coef > 0.0f) {
-        reflect_color = trace(rt::ray(result.position, reflection), (recursion - 1)) * reflect_coef;
-    }
+    auto specular_color = [&]() -> void
+    {
+        if(specular_factor > 0.0f) {
+            const float phong = ::powf(rt::vec3f::dot(light_dir, reflection) * (diffusion > 0.0f), specular_factor);
+            final_color += (light_color * phong);
+        }
+    };
 
-    if(specular_coef > 0.0f) {
-        const float phong = ::powf(rt::vec3f::dot(light_dir, reflection) * (diffusion > 0.0f), specular_coef);
-        specular_color = (light.color * phong * attenuation);
-    }
+    ambient_color();
+    diffuse_color();
+    reflect_color();
+    refract_color();
+    specular_color();
 
-    return diffuse_color + reflect_color + specular_color;
+    return final_color;
 }
 
 void raytracer::render(ppm::writer& output, const int w, const int h, const int samples, const int recursions)
@@ -652,7 +685,7 @@ void scene_factory::initialize_ponceto()
     _sky_ambient     = rt::col3f (+0.50f, +0.50f, +0.50f);
     _floor_scale     = float     (0.2f);
     _floor_reflect   = float     (0.3f);
-    _sphere_radius   = float     (1.0f);
+    _sphere_radius   = float     (0.75);
     _sphere_color    = rt::col3f (+1.0f, +0.8f, +0.0f);
     _sphere_reflect  = float     (0.7f);
     _sphere_refract  = float     (0.0f);
@@ -718,6 +751,12 @@ void scene_factory::initialize_simple()
     _world[row++] = 0b00000000000000000000000000000000;
     _world[row++] = 0b00000000000000000000000000000000;
     _world[row++] = 0b00000000000000100100000000000000;
+
+    _sphere_radius   = float     (1.0f);
+    _sphere_color    = rt::col3f (0.20f, 0.25f, 0.15f);
+    _sphere_reflect  = float     (0.50f);
+    _sphere_refract  = float     (0.30f);
+    _sphere_specular = float     (50.0f);
 }
 
 std::shared_ptr<rt::scene> scene_factory::build()
