@@ -756,12 +756,14 @@ void scene_factory::initialize_simple()
     _world[row++] = 0b00000000000000000000000000000000;
     _world[row++] = 0b00000000000000100100000000000000;
 
+    _floor_scale     = float     (0.7f);
+    _floor_reflect   = float     (0.3f);
     _sphere_radius   = float     (1.0f);
-    _sphere_color    = rt::col3f (0.15f, 0.25f, 0.50f);
-    _sphere_reflect  = float     (0.10f);
+    _sphere_color    = rt::col3f (0.15f, 0.35f, 0.25f);
+    _sphere_reflect  = float     (0.20f);
     _sphere_refract  = float     (0.70f);
-    _sphere_eta      = float     (0.65f);
-    _sphere_specular = float     (50.0f);
+    _sphere_eta      = float     (0.70f);
+    _sphere_specular = float     (90.0f);
 }
 
 std::shared_ptr<rt::scene> scene_factory::build()
