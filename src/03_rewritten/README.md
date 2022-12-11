@@ -55,6 +55,7 @@ Scenes:
     - ponceto
     - smiley
     - simple
+    - spheres
 
 ```
 
@@ -75,7 +76,7 @@ The following example will generate a file named `output.ppm`:
 ### AEK
 
 ```
-./card.bin --scene=aek --width=960 --height=540 --samples=1024 --output=aek.ppm
+./card.bin --scene=aek --width=1920 --height=1080 --samples=1024 --output=aek.ppm
 ```
 
 ![aek](../../doc/aek-1920x1080-q1024.png)
@@ -83,7 +84,7 @@ The following example will generate a file named `output.ppm`:
 ### PONCETO
 
 ```
-./card.bin --scene=ponceto --width=960 --height=540 --samples=1024 --output=ponceto.ppm
+./card.bin --scene=ponceto --width=1920 --height=1080 --samples=1024 --output=ponceto.ppm
 ```
 
 ![ponceto](../../doc/ponceto-1920x1080-q1024.png)
@@ -91,7 +92,7 @@ The following example will generate a file named `output.ppm`:
 ### SMILEY
 
 ```
-./card.bin --scene=smiley --width=960 --height=540 --samples=1024 --output=smiley.ppm
+./card.bin --scene=smiley --width=1920 --height=1080 --samples=1024 --output=smiley.ppm
 ```
 
 ![smiley](../../doc/smiley-1920x1080-q1024.png)
@@ -99,10 +100,18 @@ The following example will generate a file named `output.ppm`:
 ### SIMPLE
 
 ```
-./card.bin --scene=simple --width=960 --height=540 --samples=1024 --output=simple.ppm
+./card.bin --scene=simple --width=1920 --height=1080 --samples=1024 --output=simple.ppm
 ```
 
 ![simple](../../doc/simple-1920x1080-q1024.png)
+
+### SPHERES
+
+```
+./card.bin --scene=spheres --width=1920 --height=1080 --samples=1024 --output=spheres.ppm
+```
+
+![simple](../../doc/simple-spheres-q1024.png)
 
 ## TESTING
 

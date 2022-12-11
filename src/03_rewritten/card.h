@@ -763,6 +763,7 @@ public:
         const float k   = 1.0f - (eta * eta) * (1.0f - (dot * dot));
         const pos3f o(origin + (direction * (distance + hit_result::DISTANCE_MIN)));
         const vec3f d(k < 0.0f ? direction : (direction * eta) - (normal * (eta * dot + ::sqrtf(k))));
+
         return ray(o, d);
     }
 
@@ -1060,30 +1061,29 @@ protected:
 }
 
 // ---------------------------------------------------------------------------
-// card::raytracer
+// rt::raytracer
 // ---------------------------------------------------------------------------
 
-namespace card {
+namespace rt {
 
 class raytracer
 {
 public:
-    raytracer(base::console& console, const rt::scene& scene);
+    raytracer(const scene&);
 
     virtual ~raytracer() = default;
 
     void render(ppm::writer&, const int w, const int h, const int samples, const int recursions);
 
 protected:
-    rt::col3f trace(const rt::ray& ray, const int depth);
+    col3f trace(const ray&, const int depth);
 
-    bool hit(const rt::ray& ray, rt::hit_result& result);
+    bool hit(const ray&, hit_result& result);
 
 protected:
-    base::console&   _console;
+    const scene&     _scene;
     base::randomizer _random1;
     base::randomizer _random2;
-    const rt::scene& _scene;
 };
 
 }
@@ -1106,8 +1106,6 @@ public:
 protected:
     void initialize();
 
-    void initialize_default();
-
     void initialize_aek();
 
     void initialize_ponceto();
@@ -1116,7 +1114,19 @@ protected:
 
     void initialize_simple();
 
+    void initialize_spheres();
+
     std::shared_ptr<rt::scene> build();
+
+    void build_aek(rt::scene&);
+
+    void build_ponceto(rt::scene&);
+
+    void build_smiley(rt::scene&);
+
+    void build_simple(rt::scene&);
+
+    void build_spheres(rt::scene&);
 
 protected:
     std::string _name;

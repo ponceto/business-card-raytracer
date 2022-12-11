@@ -318,8 +318,8 @@ bool sphere::hit(const ray& ray, hit_result& result) const
     const float a = vec3f::dot(ray.direction, ray.direction);
     const float b = 2.0f * vec3f::dot(oc, ray.direction);
     const float c = vec3f::dot(oc, oc) - (_radius * _radius);
-    const float delta = ((b * b) - (4.0 * a * c));
-    if(delta > 0.0) {
+    const float delta = ((b * b) - (4.0f * a * c));
+    if(delta > 0.0f) {
         constexpr float distance_min = hit_result::DISTANCE_MIN;
         const     float distance_max = result.distance;
         const     float distance_hit = ((-b - ::sqrtf(delta)) / (2.0f * a));
@@ -343,7 +343,7 @@ bool sphere::hit(const ray& ray, hit_result& result) const
     const float b = vec3f::dot(oc, ray.direction);
     const float c = vec3f::dot(oc, oc) - (_radius * _radius);
     const float delta = ((b * b) - c);
-    if(delta > 0.0) {
+    if(delta > 0.0f) {
         constexpr float distance_min = hit_result::DISTANCE_MIN;
         const     float distance_max = result.distance;
         const     float distance_hit = (-b - ::sqrtf(delta));
@@ -367,20 +367,19 @@ bool sphere::hit(const ray& ray, hit_result& result) const
 }
 
 // ---------------------------------------------------------------------------
-// card::raytracer
+// rt::raytracer
 // ---------------------------------------------------------------------------
 
-namespace card {
+namespace rt {
 
-raytracer::raytracer(base::console& console, const rt::scene& scene)
-    : _console(console)
-    , _random1(-0.50, +0.50)
-    , _random2(-0.75, +0.75)
-    , _scene(scene)
+raytracer::raytracer(const scene& scene)
+    : _scene(scene)
+    , _random1(-0.50f, +0.50f)
+    , _random2(-0.75f, +0.75f)
 {
 }
 
-bool raytracer::hit(const rt::ray& ray, rt::hit_result& result)
+bool raytracer::hit(const ray& ray, hit_result& result)
 {
     bool status = false;
 
@@ -392,7 +391,7 @@ bool raytracer::hit(const rt::ray& ray, rt::hit_result& result)
     return status;
 }
 
-rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
+col3f raytracer::trace(const rt::ray& ray, const int recursion)
 {
     const rt::light& light = _scene.get_light();
     const rt::sky&   sky   = _scene.get_sky();
@@ -406,18 +405,19 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
         return sky.color * ::powf(1.0f - ray.direction.z, 4.0f);
     }
 
-    const rt::pos3f light_pos ( (light.position.x + _random2())
-                              , (light.position.y + _random2())
-                              , (light.position.z + _random2()) );
+    const pos3f light_pos ( (light.position.x + _random2())
+                          , (light.position.y + _random2())
+                          , (light.position.z + _random2()) );
 
-    const rt::vec3f light_dir(rt::vec3f::normalize(rt::pos3f::difference(light_pos, result.position)));
+    const rt::ray light_ray(result.position, pos3f::difference(light_pos, result.position));
 
     const rt::ray reflected_ray(ray.reflect(result.distance, result.normal));
 
     const rt::ray refracted_ray(ray.refract(result.distance, result.normal, result.eta));
 
-    float light_distance = rt::vec3f::length(rt::pos3f::difference(light.position, result.position));
-    float diffusion      = rt::vec3f::dot(light_dir, result.normal);
+    const float light_distance(vec3f::length(pos3f::difference(light.position, result.position)));
+
+    float diffusion = vec3f::dot(light_ray.direction, result.normal);
 
     if(diffusion < 0.0f) {
         diffusion = 0.0f;
@@ -425,7 +425,7 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
 
     /* cast_shadows */ {
         rt::hit_result dummy;
-        if(hit(rt::ray(result.position, light_dir), dummy) != false) {
+        if(hit(light_ray, dummy) != false) {
             diffusion = 0.0f;
         }
     }
@@ -469,7 +469,7 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
     auto specular_color = [&]() -> void
     {
         if(specular_factor > 0.0f) {
-            const float phong = ::powf(rt::vec3f::dot(light_dir, reflected_ray.direction) * (diffusion > 0.0f), specular_factor);
+            const float phong = ::powf(vec3f::dot(light_ray.direction, reflected_ray.direction) * (diffusion > 0.0f), specular_factor);
             final_color += (light_color * phong);
         }
     };
@@ -489,25 +489,25 @@ void raytracer::render(ppm::writer& output, const int w, const int h, const int 
     const int   half_w = (w / 2);
     const int   half_h = (h / 2);
     const float scale  = 255.0f / static_cast<float>(samples);
-    const float fov    = (camera.fov * 512.0) / static_cast<float>(h < w ? h : w);
-    const rt::vec3f right (rt::vec3f::normalize(rt::vec3f::cross(camera.direction, camera.normal)) * fov);
-    const rt::vec3f down  (rt::vec3f::normalize(rt::vec3f::cross(camera.direction, right        )) * fov);
-    const rt::vec3f corner(camera.direction - (right + down) * 0.5f);
+    const float fov    = (camera.fov * 512.0f) / static_cast<float>(h < w ? h : w);
+    const vec3f right (vec3f::normalize(vec3f::cross(camera.direction, camera.normal)) * fov);
+    const vec3f down  (vec3f::normalize(vec3f::cross(camera.direction, right        )) * fov);
+    const vec3f corner(camera.direction - (right + down) * 0.5f);
 
     for(int y = 0; y < h; ++y) {
         for(int x = 0; x < w; ++x) {
-            rt::col3f color;
+            col3f color;
             for(int count = samples; count != 0; --count) {
-                const rt::vec3f lens ( ( (right * _random1())
-                                       + ( down * _random1()) ) * camera.dof );
+                const vec3f lens ( ( (right * _random1())
+                                   + ( down * _random1()) ) * camera.dof );
 
-                const rt::vec3f dir ( (right * (static_cast<float>(x - half_w + 1) + _random1()))
-                                    + ( down * (static_cast<float>(y - half_h + 1) + _random1()))
-                                    + corner );
+                const vec3f dir ( (right * (static_cast<float>(x - half_w + 1) + _random1()))
+                                + ( down * (static_cast<float>(y - half_h + 1) + _random1()))
+                                + corner );
 
-                const rt::ray ray(camera.position + lens, (dir * camera.focus - lens));
+                const ray primary_ray(camera.position + lens, (dir * camera.focus - lens));
 
-                color += trace(ray, recursions);
+                color += trace(primary_ray, recursions);
             }
             color *= scale;
             output.store ( static_cast<int>(color.r)
@@ -566,25 +566,6 @@ std::shared_ptr<rt::scene> scene_factory::create(const std::string& scene_name)
 
 void scene_factory::initialize()
 {
-    initialize_default();
-
-    if(_name == "aek") {
-        return initialize_aek();
-    }
-    if(_name == "ponceto") {
-        return initialize_ponceto();
-    }
-    if(_name == "smiley") {
-        return initialize_smiley();
-    }
-    if(_name == "simple") {
-        return initialize_simple();
-    }
-    throw std::runtime_error(std::string("invalid scene") + ' ' + '<' + _name + '>');
-}
-
-void scene_factory::initialize_default()
-{
     for(auto& world : _world) {
         world = 0;
     }
@@ -593,12 +574,12 @@ void scene_factory::initialize_default()
     _camera_target   = rt::pos3f (+0.25f, 0.0f, +1.0f);
     _camera_top      = rt::pos3f (+3.5f, -5.0f, +2.7f);
     _camera_fov      = float     (0.002f);
-    _camera_dof      = float     (99.0);
-    _camera_focus    = float     (5.0);
+    _camera_dof      = float     (99.0f);
+    _camera_focus    = float     (5.0f);
     _light_position  = rt::pos3f (+7.0f, -5.0f, +3.0f);
     _light_color     = rt::col3f (+0.90f, +0.95f, +1.00f);
     _light_power     = float     (20.0f);
-    _sky_color       = rt::col3f (+0.25, +0.75f, +1.00f);
+    _sky_color       = rt::col3f (+0.25f, +0.75f, +1.00f);
     _sky_ambient     = rt::col3f (+0.35f, +0.35f, +0.35f);
     _floor_position  = rt::pos3f (0.0f, 0.0f, 0.0f);
     _floor_normal    = rt::vec3f (0.0f, 0.0f, 1.0f);
@@ -614,6 +595,23 @@ void scene_factory::initialize_default()
     _sphere_refract  = float     (0.0f);
     _sphere_eta      = float     (1.0f);
     _sphere_specular = float     (50.0f);
+
+    if(_name == "aek") {
+        return initialize_aek();
+    }
+    if(_name == "ponceto") {
+        return initialize_ponceto();
+    }
+    if(_name == "smiley") {
+        return initialize_smiley();
+    }
+    if(_name == "simple") {
+        return initialize_simple();
+    }
+    if(_name == "spheres") {
+        return initialize_spheres();
+    }
+    throw std::runtime_error(std::string("invalid scene") + ' ' + '<' + _name + '>');
 }
 
 void scene_factory::initialize_aek()
@@ -689,7 +687,7 @@ void scene_factory::initialize_ponceto()
     _sky_ambient     = rt::col3f (+0.50f, +0.50f, +0.50f);
     _floor_scale     = float     (0.2f);
     _floor_reflect   = float     (0.3f);
-    _sphere_radius   = float     (0.75);
+    _sphere_radius   = float     (0.75f);
     _sphere_color    = rt::col3f (+1.0f, +0.8f, +0.0f);
     _sphere_reflect  = float     (0.7f);
     _sphere_refract  = float     (0.0f);
@@ -766,6 +764,21 @@ void scene_factory::initialize_simple()
     _sphere_specular = float     (90.0f);
 }
 
+void scene_factory::initialize_spheres()
+{
+    _camera_position = rt::pos3f (+4.0f, -4.0f, +2.0f);
+    _camera_target   = rt::pos3f (+0.0f, +0.0f, +1.0f);
+    _camera_top      = rt::pos3f (+4.0f, -4.0f, +3.0f);
+    _camera_fov      = float     (0.002f);
+    _camera_dof      = float     (45.0f);
+    _camera_focus    = float     (5.0f);
+    _light_position  = rt::pos3f (-3.0f, -7.0f, +5.0f);
+    _light_color     = rt::col3f (+1.00f, +1.00f, +1.00f);
+    _light_power     = float     (15.0f);
+    _floor_color1    = rt::col3f (+0.10f, +0.10f, +0.10f);
+    _floor_color2    = rt::col3f (+0.90f, +0.90f, +0.90f);
+}
+
 std::shared_ptr<rt::scene> scene_factory::build()
 {
     auto add_floor = [&](rt::scene& scene) -> void
@@ -835,7 +848,62 @@ std::shared_ptr<rt::scene> scene_factory::build()
 
     add_spheres(*scene);
 
+    if(_name == "aek") {
+        build_aek(*scene);
+    }
+    if(_name == "ponceto") {
+        build_ponceto(*scene);
+    }
+    if(_name == "smiley") {
+        build_smiley(*scene);
+    }
+    if(_name == "simple") {
+        build_simple(*scene);
+    }
+    if(_name == "spheres") {
+        build_spheres(*scene);
+    }
     return scene;
+}
+
+void scene_factory::build_aek(rt::scene& scene)
+{
+}
+
+void scene_factory::build_ponceto(rt::scene& scene)
+{
+}
+
+void scene_factory::build_smiley(rt::scene& scene)
+{
+}
+
+void scene_factory::build_simple(rt::scene& scene)
+{
+}
+
+void scene_factory::build_spheres(rt::scene& scene)
+{
+    auto add_sphere = [&] ( const rt::pos3f& position
+                          , const float      radius
+                          , const rt::col3f& color
+                          , const float      reflect
+                          , const float      refract
+                          , const float      eta
+                          , const float      specular )
+    {
+        std::shared_ptr<rt::sphere> obj = std::make_shared<rt::sphere>(position, 1.0f);
+        obj->set_color0(color);
+        obj->set_reflect(reflect);
+        obj->set_refract(refract);
+        obj->set_eta(eta);
+        obj->set_specular(specular);
+        scene.add(obj);
+    };
+
+    add_sphere(rt::pos3f(-1.5f, +1.5f, +1.0f), 1.0f, rt::col3f(0.0f, 0.0f, 0.5f), 0.5f, 0.0f, 1.00f, 45.0f);
+    add_sphere(rt::pos3f(+0.0f, -1.5f, +1.0f), 1.0f, rt::col3f(0.8f, 0.8f, 0.0f), 0.1f, 0.3f, 0.91f, 90.0f);
+    add_sphere(rt::pos3f(+1.5f, +1.5f, +1.0f), 1.0f, rt::col3f(0.0f, 0.8f, 0.0f), 0.3f, 0.3f, 0.50f, 75.0f);
 }
 
 }
@@ -892,7 +960,7 @@ void generator::main()
     {
         ppm::writer output(_output);
         const std::shared_ptr<rt::scene> scene(scene_factory::create(_scene));
-        card::raytracer raytracer(*this, *scene);
+        rt::raytracer raytracer(*scene);
 
         output.open(_card_w, _card_h, 255);
         begin();
@@ -1047,6 +1115,7 @@ void generator::usage()
     cout() << "    - ponceto"                                                << std::endl;
     cout() << "    - smiley"                                                 << std::endl;
     cout() << "    - simple"                                                 << std::endl;
+    cout() << "    - spheres"                                                << std::endl;
     cout() << ""                                                             << std::endl;
 }
 

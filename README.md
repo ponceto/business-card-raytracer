@@ -155,6 +155,8 @@ Another examples:
 
 ![Another example 3](doc/simple-512x512-q64.png)
 
+![Another example 4](doc/spheres-512x512-q64.png)
+
 ## REFERENCES
 
 Andrew Kensler:
