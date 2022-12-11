@@ -11,6 +11,7 @@ opt_renderer='./card.bin'
 opt_width='512'
 opt_height='512'
 opt_samples='64'
+opt_threads='1'
 opt_scenes="
 aek
 ponceto
@@ -89,6 +90,9 @@ do
         --help)
             opt_usage='yes'
             ;;
+        --threads=*)
+            opt_threads="${arg_value}"
+            ;;
         *)
             opt_error='yes'
             ;;
@@ -108,6 +112,8 @@ Usage: ${arg_script} [ARGUMENTS...]
 Arguments:
 
     help, --help            display this help
+
+    --threads={int}         number of threads
 
     default                 resolution of 512x512, 64 samples per pixel
 
@@ -161,6 +167,7 @@ do
 		--width="${opt_width}" \
 		--height="${opt_height}" \
 		--samples="${opt_samples}" \
+		--threads="${opt_threads}" \
 		--output="${scene}-${opt_width}x${opt_height}-q${opt_samples}.ppm"
     if [ "${?}" != 0 ]
     then

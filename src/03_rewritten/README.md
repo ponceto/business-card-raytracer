@@ -125,6 +125,8 @@ Arguments:
 
     help, --help            display this help
 
+    --threads={int}         number of threads
+
     default                 resolution of 512x512, 64 samples per pixel
 
     tiny                    set resolution to 384x216
