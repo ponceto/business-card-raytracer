@@ -7,10 +7,10 @@
 arg_script=$(basename "${0:-not-set}")
 opt_usage='no'
 opt_error='no'
-opt_renderer="./card.bin"
-opt_width="512"
-opt_height="512"
-opt_samples="64"
+opt_renderer='./card.bin'
+opt_width='512'
+opt_height='512'
+opt_samples='64'
 opt_scenes="
 aek
 ponceto
@@ -34,53 +34,53 @@ do
     esac
     case "${1}" in
         default)
-            opt_width="512"
-            opt_height="512"
-            opt_samples="64"
+            opt_width='512'
+            opt_height='512'
+            opt_samples='64'
             ;;
         tiny)
-            opt_width="384"
-            opt_height="216"
+            opt_width='384'
+            opt_height='216'
             ;;
         small)
-            opt_width="480"
-            opt_height="270"
+            opt_width='480'
+            opt_height='270'
             ;;
         medium)
-            opt_width="960"
-            opt_height="540"
+            opt_width='960'
+            opt_height='540'
             ;;
         large)
-            opt_width="1440"
-            opt_height="810"
+            opt_width='1440'
+            opt_height='810'
             ;;
         huge)
-            opt_width="1920"
-            opt_height="1080"
+            opt_width='1920'
+            opt_height='1080'
             ;;
         q8)
-            opt_samples="8"
+            opt_samples='8'
             ;;
         q16)
-            opt_samples="16"
+            opt_samples='16'
             ;;
         q32)
-            opt_samples="32"
+            opt_samples='32'
             ;;
         q64)
-            opt_samples="64"
+            opt_samples='64'
             ;;
         q128)
-            opt_samples="128"
+            opt_samples='128'
             ;;
         q256)
-            opt_samples="256"
+            opt_samples='256'
             ;;
         q512)
-            opt_samples="512"
+            opt_samples='512'
             ;;
         q1024)
-            opt_samples="1024"
+            opt_samples='1024'
             ;;
         help)
             opt_usage='yes'
