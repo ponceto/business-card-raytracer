@@ -221,9 +221,9 @@ class vec3f
 {
 public:
     vec3f()
-        : vec3f ( 0.0f
-                , 0.0f
-                , 0.0f )
+        : x(0.0f)
+        , y(0.0f)
+        , z(0.0f)
     {
     }
 
@@ -234,6 +234,35 @@ public:
         , y(vec_y)
         , z(vec_z)
     {
+    }
+
+    vec3f ( const float vec_x
+          , const float vec_y
+          , const float vec_z
+          , const bool  normalize_vector )
+        : x(vec_x)
+        , y(vec_y)
+        , z(vec_z)
+    {
+        if(normalize_vector != false) {
+            const float veclen = length(*this);
+            x /= veclen;
+            y /= veclen;
+            z /= veclen;
+        }
+    }
+
+    vec3f(const vec3f& vec, const bool normalize_vector)
+        : x(vec.x)
+        , y(vec.y)
+        , z(vec.z)
+    {
+        if(normalize_vector != false) {
+            const float veclen = length(*this);
+            x /= veclen;
+            y /= veclen;
+            z /= veclen;
+        }
     }
 
     vec3f operator+() const
@@ -684,6 +713,7 @@ public:
         , color()
         , reflect()
         , refract()
+        , eta()
         , specular()
     {
     }
@@ -697,6 +727,7 @@ public:
     col3f color;
     float reflect;
     float refract;
+    float eta;
     float specular;
 };
 
@@ -714,8 +745,25 @@ public:
     ray ( const pos3f& ray_origin
         , const vec3f& ray_direction )
         : origin(ray_origin)
-        , direction(ray_direction.normalized())
+        , direction(ray_direction, true)
     {
+    }
+
+    ray reflect(const float distance, const vec3f& normal) const
+    {
+        const pos3f o(origin + (direction * (distance - hit_result::DISTANCE_MIN)));
+        const vec3f d(direction + normal * (vec3f::dot(normal, direction) * -2.0f));
+
+        return ray(o, d);
+    }
+
+    ray refract(const float distance, const vec3f& normal, const float eta) const
+    {
+        const float dot = vec3f::dot(normal, direction);
+        const float k   = 1.0f - (eta * eta) * (1.0f - (dot * dot));
+        const pos3f o(origin + (direction * (distance + hit_result::DISTANCE_MIN)));
+        const vec3f d(k < 0.0f ? direction : (direction * eta) - (normal * (eta * dot + ::sqrtf(k))));
+        return ray(o, d);
     }
 
     pos3f origin;
@@ -755,8 +803,8 @@ public:
            , const float  camera_dof
            , const float  camera_focus )
         : position(camera_position)
-        , direction(camera_direction.normalized())
-        , normal(camera_normal.normalized())
+        , direction(camera_direction, true)
+        , normal(camera_normal, true)
         , fov(camera_fov)
         , dof(camera_dof)
         , focus(camera_focus)
@@ -830,9 +878,13 @@ class object
 {
 public:
     object()
-        : reflect(0.0f)
-        , refract(0.0f)
-        , specular(0.0f)
+        : _color0(0.5f, 0.5f, 0.5f)
+        , _color1(1.0f, 0.3f, 0.3f)
+        , _color2(1.0f, 1.0f, 1.0f)
+        , _reflect(0.0f)
+        , _refract(0.0f)
+        , _eta(1.0f)
+        , _specular(0.0f)
     {
     }
 
@@ -840,12 +892,52 @@ public:
 
     virtual bool hit(const ray&, hit_result&) const = 0;
 
+    void set_color0(const col3f& color0)
+    {
+        _color0 = color0;
+    }
+
+    void set_color1(const col3f& color1)
+    {
+        _color1 = color1;
+    }
+
+    void set_color2(const col3f& color2)
+    {
+        _color2 = color2;
+    }
+
+    void set_reflect(const float reflect)
+    {
+        _reflect = reflect;
+    }
+
+    void set_refract(const float refract)
+    {
+        _refract = refract;
+    }
+
+    void set_eta(const float eta)
+    {
+        _eta = eta;
+    }
+
+    void set_specular(const float specular)
+    {
+        _specular = specular;
+    }
+
     using shared_ptr = std::shared_ptr<object>;
     using vector     = std::vector<shared_ptr>;
 
-    float reflect;
-    float refract;
-    float specular;
+protected:
+    col3f _color0;
+    col3f _color1;
+    col3f _color2;
+    float _reflect;
+    float _refract;
+    float _eta;
+    float _specular;
 };
 
 }
@@ -860,17 +952,13 @@ class floor final
     : public object
 {
 public:
-    floor ( const pos3f& floor_position
-          , const vec3f& floor_normal
-          , const col3f& floor_color1
-          , const col3f& floor_color2
-          , const float  floor_scale )
+    floor ( const pos3f& position
+          , const vec3f& normal
+          , const float  scale )
         : object()
-        , position(floor_position)
-        , normal(floor_normal.normalized())
-        , color1(floor_color1)
-        , color2(floor_color2)
-        , scale(floor_scale)
+        , _position(position)
+        , _normal(normal, true)
+        , _scale(scale)
     {
     }
 
@@ -878,11 +966,10 @@ public:
 
     virtual bool hit(const ray&, hit_result&) const override;
 
-    pos3f position;
-    vec3f normal;
-    col3f color1;
-    col3f color2;
-    float scale;
+protected:
+    pos3f _position;
+    vec3f _normal;
+    float _scale;
 };
 
 }
@@ -897,13 +984,11 @@ class sphere final
     : public object
 {
 public:
-    sphere ( const pos3f& sphere_center
-           , const col3f& sphere_color
-           , const float  sphere_radius )
+    sphere ( const pos3f& position
+           , const float  radius )
         : object()
-        , center(sphere_center)
-        , color(sphere_color)
-        , radius(sphere_radius)
+        , _position(position)
+        , _radius(radius)
     {
     }
 
@@ -911,9 +996,9 @@ public:
 
     virtual bool hit(const ray&, hit_result&) const override;
 
-    pos3f center;
-    col3f color;
-    float radius;
+protected:
+    pos3f _position;
+    float _radius;
 };
 
 }
@@ -1059,6 +1144,7 @@ protected:
     rt::col3f   _sphere_color;
     float       _sphere_reflect;
     float       _sphere_refract;
+    float       _sphere_eta;
     float       _sphere_specular;
 };
 

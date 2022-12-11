@@ -275,24 +275,26 @@ bool floor::hit(const ray& ray, hit_result& result) const
 {
     auto color = [&]() -> const col3f&
     {
-        const float x = ::ceilf(result.position.x * scale);
-        const float y = ::ceilf(result.position.y * scale);
+        const float x = ::ceilf(result.position.x * _scale);
+        const float y = ::ceilf(result.position.y * _scale);
         const int   c = static_cast<int>(x + y) & 1;
 
-        return (c != 0 ? color1 : color2);
+        return (c != 0 ? _color1 : _color2);
     };
 
     constexpr float distance_min = hit_result::DISTANCE_MIN;
     const     float distance_max = result.distance;
     const     float distance_hit = -ray.origin.z / ray.direction.z;
     if((distance_hit > distance_min) && (distance_hit < distance_max)) {
+        const vec3f length((ray.direction * distance_hit));
         result.distance = distance_hit;
-        result.position = (ray.origin + (ray.direction * result.distance));
-        result.normal   = normal;
+        result.position = pos3f(ray.origin + length);
+        result.normal   = _normal;
         result.color    = color();
-        result.reflect  = reflect;
-        result.refract  = refract;
-        result.specular = specular;
+        result.reflect  = _reflect;
+        result.refract  = _refract;
+        result.eta      = _eta;
+        result.specular = _specular;
         return true;
     }
     return false;
@@ -308,27 +310,29 @@ namespace rt {
 
 bool sphere::hit(const ray& ray, hit_result& result) const
 {
-    const vec3f oc(pos3f::difference(ray.origin, center));
+    const vec3f oc(pos3f::difference(ray.origin, _position));
 #if 0
     /*
      * the complete analytic version
      */
     const float a = vec3f::dot(ray.direction, ray.direction);
     const float b = 2.0f * vec3f::dot(oc, ray.direction);
-    const float c = vec3f::dot(oc, oc) - (radius * radius);
+    const float c = vec3f::dot(oc, oc) - (_radius * _radius);
     const float delta = ((b * b) - (4.0 * a * c));
     if(delta > 0.0) {
         constexpr float distance_min = hit_result::DISTANCE_MIN;
         const     float distance_max = result.distance;
         const     float distance_hit = ((-b - ::sqrtf(delta)) / (2.0f * a));
         if((distance_hit > distance_min) && (distance_hit < distance_max)) {
+            const vec3f length((ray.direction * distance_hit));
             result.distance = distance_hit;
-            result.position = (ray.origin + (ray.direction * result.distance));
-            result.normal   = vec3f::normalize(oc + ray.direction * result.distance);
-            result.color    = color;
-            result.reflect  = reflect;
-            result.refract  = refract;
-            result.specular = specular;
+            result.position = pos3f(ray.origin + length);
+            result.normal   = vec3f(oc + length, true);
+            result.color    = _color0;
+            result.reflect  = _reflect;
+            result.refract  = _refract;
+            result.eta      = _eta;
+            result.specular = _specular;
             return true;
         }
     }
@@ -337,20 +341,22 @@ bool sphere::hit(const ray& ray, hit_result& result) const
      * the simplified analytic version
      */
     const float b = vec3f::dot(oc, ray.direction);
-    const float c = vec3f::dot(oc, oc) - (radius * radius);
+    const float c = vec3f::dot(oc, oc) - (_radius * _radius);
     const float delta = ((b * b) - c);
     if(delta > 0.0) {
         constexpr float distance_min = hit_result::DISTANCE_MIN;
         const     float distance_max = result.distance;
         const     float distance_hit = (-b - ::sqrtf(delta));
         if((distance_hit > distance_min) && (distance_hit < distance_max)) {
+            const vec3f length((ray.direction * distance_hit));
             result.distance = distance_hit;
-            result.position = (ray.origin + (ray.direction * result.distance));
-            result.normal   = vec3f::normalize(oc + ray.direction * result.distance);
-            result.color    = color;
-            result.reflect  = reflect;
-            result.refract  = refract;
-            result.specular = specular;
+            result.position = pos3f(ray.origin + length);
+            result.normal   = vec3f(oc + length, true);
+            result.color    = _color0;
+            result.reflect  = _reflect;
+            result.refract  = _refract;
+            result.eta      = _eta;
+            result.specular = _specular;
             return true;
         }
     }
@@ -406,7 +412,9 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
 
     const rt::vec3f light_dir(rt::vec3f::normalize(rt::pos3f::difference(light_pos, result.position)));
 
-    const rt::vec3f reflection(ray.direction + result.normal * (rt::vec3f::dot(result.normal, ray.direction) * -2.0f));
+    const rt::ray reflected_ray(ray.reflect(result.distance, result.normal));
+
+    const rt::ray refracted_ray(ray.refract(result.distance, result.normal, result.eta));
 
     float light_distance = rt::vec3f::length(rt::pos3f::difference(light.position, result.position));
     float diffusion      = rt::vec3f::dot(light_dir, result.normal);
@@ -447,9 +455,6 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
     auto reflect_color = [&]() -> void
     {
         if(reflect_factor > 0.0f) {
-            const rt::pos3f origin(ray.origin + (ray.direction * (result.distance - result.DISTANCE_MIN)));
-            const rt::vec3f direction(reflection);
-            const rt::ray   reflected_ray(origin, direction);
             final_color += (trace(reflected_ray, (recursion - 1)) * reflect_factor);
         }
     };
@@ -457,9 +462,6 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
     auto refract_color = [&]() -> void
     {
         if(refract_factor > 0.0f) {
-            const rt::pos3f origin(ray.origin + (ray.direction * (result.distance + result.DISTANCE_MIN)));
-            const rt::vec3f direction(ray.direction);
-            const rt::ray   refracted_ray(origin, direction);
             final_color += (trace(refracted_ray, (recursion - 1)) * refract_factor);
         }
     };
@@ -467,7 +469,7 @@ rt::col3f raytracer::trace(const rt::ray& ray, const int recursion)
     auto specular_color = [&]() -> void
     {
         if(specular_factor > 0.0f) {
-            const float phong = ::powf(rt::vec3f::dot(light_dir, reflection) * (diffusion > 0.0f), specular_factor);
+            const float phong = ::powf(rt::vec3f::dot(light_dir, reflected_ray.direction) * (diffusion > 0.0f), specular_factor);
             final_color += (light_color * phong);
         }
     };
@@ -549,6 +551,7 @@ scene_factory::scene_factory(const std::string& scene_name)
     , _sphere_color()
     , _sphere_reflect()
     , _sphere_refract()
+    , _sphere_eta()
     , _sphere_specular()
 {
     initialize();
@@ -609,6 +612,7 @@ void scene_factory::initialize_default()
     _sphere_color    = rt::col3f (0.20f, 0.25f, 0.15f);
     _sphere_reflect  = float     (0.5f);
     _sphere_refract  = float     (0.0f);
+    _sphere_eta      = float     (1.0f);
     _sphere_specular = float     (50.0f);
 }
 
@@ -753,9 +757,10 @@ void scene_factory::initialize_simple()
     _world[row++] = 0b00000000000000100100000000000000;
 
     _sphere_radius   = float     (1.0f);
-    _sphere_color    = rt::col3f (0.20f, 0.25f, 0.15f);
-    _sphere_reflect  = float     (0.50f);
-    _sphere_refract  = float     (0.30f);
+    _sphere_color    = rt::col3f (0.15f, 0.25f, 0.50f);
+    _sphere_reflect  = float     (0.10f);
+    _sphere_refract  = float     (0.70f);
+    _sphere_eta      = float     (0.65f);
     _sphere_specular = float     (50.0f);
 }
 
@@ -763,14 +768,12 @@ std::shared_ptr<rt::scene> scene_factory::build()
 {
     auto add_floor = [&](rt::scene& scene) -> void
     {
-        std::shared_ptr<rt::floor> obj = std::make_shared<rt::floor> ( _floor_position
-                                                                     , _floor_normal
-                                                                     , _floor_color1
-                                                                     , _floor_color2
-                                                                     , _floor_scale );
-        obj->reflect  = _floor_reflect;
-        obj->refract  = _floor_refract;
-        obj->specular = _floor_specular;
+        std::shared_ptr<rt::floor> obj = std::make_shared<rt::floor>(_floor_position, _floor_normal, _floor_scale);
+        obj->set_color1( _floor_color1);
+        obj->set_color2( _floor_color2);
+        obj->set_reflect( _floor_reflect);
+        obj->set_refract( _floor_refract);
+        obj->set_specular( _floor_specular);
 
         scene.add(obj);
     };
@@ -794,12 +797,12 @@ std::shared_ptr<rt::scene> scene_factory::build()
                     const float y = static_cast<float>(0);
                     const float z = static_cast<float>(rows - row) + row_offset;
                     const float r = _sphere_radius;
-                    std::shared_ptr<rt::sphere> obj = std::make_shared<rt::sphere> ( rt::pos3f(x, y, z)
-                                                                                   , _sphere_color
-                                                                                   , r );
-                    obj->reflect  = _sphere_reflect;
-                    obj->refract  = _sphere_refract;
-                    obj->specular = _sphere_specular;
+                    std::shared_ptr<rt::sphere> obj = std::make_shared<rt::sphere>(rt::pos3f(x, y, z), r);
+                    obj->set_color0(_sphere_color);
+                    obj->set_reflect(_sphere_reflect);
+                    obj->set_refract(_sphere_refract);
+                    obj->set_eta(_sphere_eta);
+                    obj->set_specular(_sphere_specular);
 
                     scene.add(obj);
                 }
