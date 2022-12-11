@@ -111,7 +111,7 @@ The following example will generate a file named `output.ppm`:
 ./card.bin --scene=spheres --width=1920 --height=1080 --samples=1024 --output=spheres.ppm
 ```
 
-![simple](../../doc/simple-spheres-q1024.png)
+![spheres](../../doc/spheres-1920x1080q1024.png)
 
 ## TESTING
 
