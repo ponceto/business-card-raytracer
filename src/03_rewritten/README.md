@@ -48,6 +48,7 @@ Options:
     --height={int}          the card height
     --samples={int}         samples per pixel
     --recursions={int}      maximum recursions level
+    --threads={int}         number of threads
 
 Scenes:
 

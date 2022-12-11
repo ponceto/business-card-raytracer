@@ -155,9 +155,21 @@ public:
 
     virtual ~stream();
 
+    auto data() const -> uint8_t*
+    {
+        return _buffer;
+    }
+
+    auto size() const -> size_t
+    {
+        return _length;
+    }
+
 protected:
     const std::string _filename;
     FILE*             _stream;
+    uint8_t*          _buffer;
+    size_t            _length;
     int               _width;
     int               _height;
     int               _maxval;
@@ -181,7 +193,7 @@ public:
 
     void open(int& width, int& height, int& maxval);
 
-    void fetch(int& r, int& g, int& b);
+    void fetch();
 
     void close();
 };
@@ -204,7 +216,7 @@ public:
 
     void open(int width, int height, int maxval);
 
-    void store(int r, int g, int b);
+    void store();
 
     void close();
 };
@@ -1073,7 +1085,7 @@ public:
 
     virtual ~raytracer() = default;
 
-    void render(ppm::writer&, const int w, const int h, const int samples, const int recursions);
+    void render(ppm::writer&, const int w, const int h, const int samples, const int recursions, const int threads);
 
 protected:
     col3f trace(const ray&, const int depth);
@@ -1189,6 +1201,7 @@ protected:
     int         _card_h;
     int         _samples;
     int         _recursions;
+    int         _threads;
 };
 
 }

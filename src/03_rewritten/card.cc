@@ -17,6 +17,7 @@
 #include <chrono>
 #include <memory>
 #include <random>
+#include <thread>
 #include <iostream>
 #include <stdexcept>
 #include "card.h"
@@ -82,6 +83,8 @@ namespace ppm {
 stream::stream(const std::string& filename)
     : _filename(filename)
     , _stream(nullptr)
+    , _buffer(nullptr)
+    , _length(0)
     , _width(0)
     , _height(0)
     , _maxval(0)
@@ -90,6 +93,10 @@ stream::stream(const std::string& filename)
 
 stream::~stream()
 {
+    if(_buffer != nullptr) {
+        _buffer = (delete[] _buffer, nullptr);
+        _length = 0;
+    }
     if(_stream != nullptr) {
         _stream = (static_cast<void>(::fclose(_stream)), nullptr);
     }
@@ -113,7 +120,7 @@ void reader::open(int& width, int& height, int& maxval)
     throw std::runtime_error(std::string("ppm::reader is unable to open") + ',' + ' ' + "not implemented");
 }
 
-void reader::fetch(int& r, int& g, int& b)
+void reader::fetch()
 {
     throw std::runtime_error(std::string("ppm::reader is unable to fetch") + ',' + ' ' + "not implemented");
 }
@@ -142,6 +149,12 @@ void writer::open(int width, int height, int maxval)
     {
         if(_stream != nullptr) {
             throw std::runtime_error(std::string("ppm::writer is unable to open") + ',' + ' ' + "file is already opened");
+        }
+        if(_buffer != nullptr) {
+            throw std::runtime_error(std::string("ppm::writer is unable to open") + ',' + ' ' + "buffer is already allocated");
+        }
+        if(_length != 0) {
+            throw std::runtime_error(std::string("ppm::writer is unable to open") + ',' + ' ' + "length is already set");
         }
         if(_width > 0) {
             throw std::runtime_error(std::string("ppm::writer is unable to open") + ',' + ' ' + "width is already set");
@@ -175,6 +188,9 @@ void writer::open(int width, int height, int maxval)
         if((_stream = ::fopen(_filename.c_str(), "w")) == nullptr) {
             throw std::runtime_error(std::string("ppm::writer is unable to open") + ',' + ' ' + '<' + _filename + '>');
         }
+        if((_buffer = new uint8_t[_length = (_height * (_width * 3))]) == nullptr) {
+            throw std::runtime_error(std::string("ppm::writer is unable to open") + ',' + ' ' + "error while allocating buffer");
+        }
         if(::fprintf(_stream, "P6\n%d %d\n%d\n", _width, _height, _maxval) == EOF) {
             throw std::runtime_error(std::string("ppm::writer is unable to open") + ',' + ' ' + "error while writing");
         }
@@ -190,35 +206,21 @@ void writer::open(int width, int height, int maxval)
     return execute();
 }
 
-void writer::store(int r, int g, int b)
+void writer::store()
 {
-    auto clamp = [&](const int val) -> uint8_t
-    {
-        constexpr int min = 0;
-        constexpr int max = 255;
-
-        if(val < min) {
-            return min;
-        }
-        if(val > max) {
-            return max;
-        }
-        return val;
-    };
-
     auto do_check = [&]() -> void
     {
         if(_stream == nullptr) {
             throw std::runtime_error(std::string("ppm::writer is unable to store") + ',' + ' ' + "file is not opened");
         }
+        if(_buffer == nullptr) {
+            throw std::runtime_error(std::string("ppm::writer is unable to store") + ',' + ' ' + "buffer is not allocated");
+        }
     };
 
-    auto do_write = [&]() -> void
+    auto do_store = [&]() -> void
     {
-        const uint8_t buffer[3] = {
-            clamp(r), clamp(g), clamp(b)
-        };
-        if(::fwrite(buffer, sizeof(buffer), 1, _stream) != 1) {
+        if(::fwrite(_buffer, sizeof(uint8_t), _length, _stream) != _length) {
             throw std::runtime_error(std::string("ppm::writer is unable to store") + ',' + ' ' + "error while writing");
         }
     };
@@ -226,7 +228,7 @@ void writer::store(int r, int g, int b)
     auto execute = [&]() -> void
     {
         do_check();
-        do_write();
+        do_store();
     };
 
     return execute();
@@ -239,11 +241,20 @@ void writer::close()
         if(_stream == nullptr) {
             throw std::runtime_error(std::string("ppm::writer is unable to close") + ',' + ' ' + "file is not opened");
         }
+        if(_buffer == nullptr) {
+            throw std::runtime_error(std::string("ppm::writer is unable to close") + ',' + ' ' + "buffer is not allocated");
+        }
     };
 
     auto do_close = [&]() -> void
     {
-        _stream = (static_cast<void>(::fclose(_stream)), nullptr);
+        if(_buffer != nullptr) {
+            _buffer = (delete[] _buffer, nullptr);
+            _length = 0;
+        }
+        if(_stream != nullptr) {
+            _stream = (static_cast<void>(::fclose(_stream)), nullptr);
+        }
     };
 
     auto execute = [&]() -> void
@@ -483,7 +494,7 @@ col3f raytracer::trace(const rt::ray& ray, const int recursion)
     return final_color;
 }
 
-void raytracer::render(ppm::writer& output, const int w, const int h, const int samples, const int recursions)
+void raytracer::render(ppm::writer& output, const int w, const int h, const int samples, const int recursions, const int threads)
 {
     const rt::camera& camera(_scene.get_camera());
     const int   half_w = (w / 2);
@@ -494,27 +505,77 @@ void raytracer::render(ppm::writer& output, const int w, const int h, const int 
     const vec3f down  (vec3f::normalize(vec3f::cross(camera.direction, right        )) * fov);
     const vec3f corner(camera.direction - (right + down) * 0.5f);
 
-    for(int y = 0; y < h; ++y) {
-        for(int x = 0; x < w; ++x) {
-            col3f color;
-            for(int count = samples; count != 0; --count) {
-                const vec3f lens ( ( (right * _random1())
-                                   + ( down * _random1()) ) * camera.dof );
+    auto clamp = [](const int val) -> uint8_t
+    {
+        constexpr int min = 0;
+        constexpr int max = 255;
 
-                const vec3f dir ( (right * (static_cast<float>(x - half_w + 1) + _random1()))
-                                + ( down * (static_cast<float>(y - half_h + 1) + _random1()))
-                                + corner );
-
-                const ray primary_ray(camera.position + lens, (dir * camera.focus - lens));
-
-                color += trace(primary_ray, recursions);
-            }
-            color *= scale;
-            output.store ( static_cast<int>(color.r)
-                         , static_cast<int>(color.g)
-                         , static_cast<int>(color.b) );
+        if(val < min) {
+            return min;
         }
-    }
+        if(val > max) {
+            return max;
+        }
+        return val;
+    };
+
+    auto thread_loop = [&](const int block_y, const int block_h) -> void
+    {
+        const int a = block_y;
+        const int b = block_y + block_h;
+        uint8_t* bufptr = output.data() + ((w * 3) * block_y);
+        for(int y = a; y < b; ++y) {
+            for(int x = 0; x < w; ++x) {
+                col3f color;
+                for(int count = samples; count != 0; --count) {
+                    const vec3f lens ( ( (right * _random1())
+                                       + ( down * _random1()) ) * camera.dof );
+
+                    const vec3f dir ( (right * (static_cast<float>(x - half_w + 1) + _random1()))
+                                    + ( down * (static_cast<float>(y - half_h + 1) + _random1()))
+                                    + corner );
+
+                    const ray primary_ray(camera.position + lens, (dir * camera.focus - lens));
+
+                    color += trace(primary_ray, recursions);
+                }
+                color *= scale;
+                *bufptr++ = clamp(static_cast<int>(color.r));
+                *bufptr++ = clamp(static_cast<int>(color.g));
+                *bufptr++ = clamp(static_cast<int>(color.b));
+            }
+        }
+    };
+
+    std::vector<std::thread> render_threads;
+
+    auto start_threads = [&]() -> void
+    {
+        int block_y  = 0;
+        int block_h  = h / threads;
+        for(int thread = 0; thread < threads; ++thread) {
+            if(thread == (threads - 1)) {
+                block_h = (h - block_y);
+            }
+            render_threads.push_back(std::thread(thread_loop, block_y, block_h));
+            block_y += block_h;
+        }
+    };
+
+    auto join_threads = [&]() -> void
+    {
+        for(auto& render_thread : render_threads) {
+            render_thread.join();
+        }
+    };
+
+    auto execute = [&]() -> void
+    {
+        start_threads();
+        join_threads();
+    };
+
+    return execute();
 }
 
 }
@@ -924,6 +985,7 @@ generator::generator(int argc, char* argv[])
     , _card_h(512)
     , _samples(64)
     , _recursions(8)
+    , _threads(1)
 {
 }
 
@@ -964,8 +1026,9 @@ void generator::main()
 
         output.open(_card_w, _card_h, 255);
         begin();
-        raytracer.render(output, _card_w, _card_h, _samples, _recursions);
+        raytracer.render(output, _card_w, _card_h, _samples, _recursions, _threads);
         end();
+        output.store();
         output.close();
     };
 
@@ -988,6 +1051,11 @@ bool generator::parse()
             return true;
         }
         return false;
+    };
+
+    auto invalid_argument = [&](const std::string& argument) -> void
+    {
+        throw std::runtime_error(std::string("invalid argument") + ' ' + '<' + argument + '>');
     };
 
     auto get_str_val = [](const std::string& argument) -> std::string
@@ -1029,26 +1097,41 @@ bool generator::parse()
     auto set_card_w = [&](const std::string& argument) -> void
     {
         _card_w = get_int_val(argument);
+        if(_card_w <= 0) {
+            invalid_argument(argument);
+        }
     };
 
     auto set_card_h = [&](const std::string& argument) -> void
     {
         _card_h = get_int_val(argument);
+        if(_card_h <= 0) {
+            invalid_argument(argument);
+        }
     };
 
     auto set_samples = [&](const std::string& argument) -> void
     {
         _samples = get_int_val(argument);
+        if(_samples <= 0) {
+            invalid_argument(argument);
+        }
     };
 
     auto set_recursions = [&](const std::string& argument) -> void
     {
         _recursions = get_int_val(argument);
+        if(_recursions <= 0) {
+            invalid_argument(argument);
+        }
     };
 
-    auto invalid_argument = [&](const std::string& argument) -> void
+    auto set_threads = [&](const std::string& argument) -> void
     {
-        throw std::runtime_error(std::string("invalid argument") + ' ' + '<' + argument + '>');
+        _threads = get_int_val(argument);
+        if(_threads <= 0) {
+            invalid_argument(argument);
+        }
     };
 
     auto execute = [&]() -> bool
@@ -1082,6 +1165,9 @@ bool generator::parse()
             else if(has_option(argument, "--recursions=")) {
                 set_recursions(argument);
             }
+            else if(has_option(argument, "--threads=")) {
+                set_threads(argument);
+            }
             else {
                 invalid_argument(argument);
             }
@@ -1108,6 +1194,7 @@ void generator::usage()
     cout() << "    --height={int}          the card height"                  << std::endl;
     cout() << "    --samples={int}         samples per pixel"                << std::endl;
     cout() << "    --recursions={int}      maximum recursions level"         << std::endl;
+    cout() << "    --threads={int}         number of threads"                << std::endl;
     cout() << ""                                                             << std::endl;
     cout() << "Scenes:"                                                      << std::endl;
     cout() << ""                                                             << std::endl;
