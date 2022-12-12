@@ -713,8 +713,9 @@ void renderer::render(ppm::writer& output, const int w, const int h, const int s
         const int y1 = tile.y;
         const int x2 = tile.x + tile.w;
         const int y2 = tile.y + tile.h;
-        const int row_stride = (w * 3);
-        uint8_t*  buffer = output.data() + ((tile.y * row_stride) + (tile.x * 3));
+        const int col_stride = (3);
+        const int row_stride = (w * col_stride);
+        uint8_t*  buffer = output.data() + ((tile.y * row_stride) + (tile.x * col_stride));
         for(int y = y1; y < y2; ++y) {
             uint8_t* bufptr = buffer;
             for(int x = x1; x < x2; ++x) {
