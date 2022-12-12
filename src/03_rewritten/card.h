@@ -18,6 +18,7 @@ using arglist                    = std::vector<std::string>;
 using steady_clock               = std::chrono::steady_clock;
 using mersenne_twister           = std::mt19937;
 using uniform_float_distribution = std::uniform_real_distribution<float>;
+using mutex_locker               = std::lock_guard<std::mutex>;
 
 }
 
@@ -941,6 +942,42 @@ protected:
 }
 
 // ---------------------------------------------------------------------------
+// rt::tile_record
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+class tile_record
+{
+public:
+    tile_record()
+        : x()
+        , y()
+        , w()
+        , h()
+    {
+    }
+
+    tile_record ( int tile_x
+                , int tile_y
+                , int tile_w
+                , int tile_h )
+        : x(tile_x)
+        , y(tile_y)
+        , w(tile_w)
+        , h(tile_h)
+    {
+    }
+
+    int x;
+    int y;
+    int w;
+    int h;
+};
+
+}
+
+// ---------------------------------------------------------------------------
 // rt::raytracer
 // ---------------------------------------------------------------------------
 
@@ -991,7 +1028,11 @@ public:
     void render(ppm::writer&, const int w, const int h, const int samples, const int recursions, const int threads);
 
 protected:
-    const scene& _scene;
+    const scene&             _scene;
+    std::mutex               _mutex;
+    std::queue<tile_record>  _tiles;
+    std::vector<std::thread> _threads;
+
 };
 
 }

@@ -639,6 +639,9 @@ namespace rt {
 
 renderer::renderer(const scene& scene)
     : _scene(scene)
+    , _mutex()
+    , _tiles()
+    , _threads()
 {
 }
 
@@ -667,53 +670,29 @@ void renderer::render(ppm::writer& output, const int w, const int h, const int s
         return val;
     };
 
-    struct tile_record
+    auto push_tile = [&](const tile_record& tile) -> void
     {
-        tile_record()
-            : x()
-            , y()
-            , w()
-            , h()
-        {
-        }
+        const base::mutex_locker lock(_mutex);
 
-        tile_record(int tile_x, int tile_y, int tile_w, int tile_h)
-            : x(tile_x)
-            , y(tile_y)
-            , w(tile_w)
-            , h(tile_h)
-        {
-        }
-
-        int x;
-        int y;
-        int w;
-        int h;
+        return _tiles.push(tile);
     };
-
-    std::mutex               mutex;
-    std::queue<tile_record>  render_tiles;
-    std::vector<std::thread> render_threads;
 
     auto pop_tile = [&](tile_record& tile) -> bool
     {
-        const std::lock_guard<std::mutex> lock(mutex);
+        const base::mutex_locker lock(_mutex);
 
-        if(render_tiles.empty()) {
+        if(_tiles.empty()) {
             return false;
         }
         else {
-            tile = render_tiles.front();
-            render_tiles.pop();
+            tile = _tiles.front();
+            _tiles.pop();
         }
         return true;
     };
 
-    auto create_tiles = [&]() -> void
+    auto create_tiles = [&](const int tile_size) -> void
     {
-        std::lock_guard<std::mutex> lock(mutex);
-
-        const int tile_size = 64;
         for(int y = 0; y < h; y += tile_size) {
             for(int x = 0; x < w; x += tile_size) {
                 tile_record tile(x, y, tile_size, tile_size);
@@ -723,14 +702,13 @@ void renderer::render(ppm::writer& output, const int w, const int h, const int s
                 if((tile.y + tile.h) >= h) {
                     tile.h = h - tile.y;
                 }
-                render_tiles.push(tile);
+                push_tile(tile);
             }
         }
     };
 
-    auto render_tile = [&](const tile_record& tile) -> void
+    auto render_tile = [&](rt::raytracer& raytracer, const rt::tile_record& tile) -> void
     {
-        rt::raytracer raytracer(_scene);
         const int x1 = tile.x;
         const int y1 = tile.y;
         const int x2 = tile.x + tile.w;
@@ -764,31 +742,39 @@ void renderer::render(ppm::writer& output, const int w, const int h, const int s
 
     auto render_loop = [&]() -> void
     {
-        tile_record tile;
+        rt::raytracer raytracer(_scene);
+        tile_record   tile;
         while(pop_tile(tile) != false) {
-            render_tile(tile);
+            render_tile(raytracer, tile);
         }
     };
 
     auto start_threads = [&]() -> void
     {
+        const base::mutex_locker lock(_mutex);
         for(int thread = 0; thread < threads; ++thread) {
-            render_threads.push_back(std::thread(render_loop));
+            _threads.push_back(std::thread(render_loop));
         }
     };
 
     auto join_threads = [&]() -> void
     {
-        for(auto& render_thread : render_threads) {
-            render_thread.join();
+        for(auto& thread : _threads) {
+            thread.join();
         }
+    };
+
+    auto clear_threads = [&]() -> void
+    {
+        std::vector<std::thread>().swap(_threads);
     };
 
     auto execute = [&]() -> void
     {
-        create_tiles();
+        create_tiles(64);
         start_threads();
         join_threads();
+        clear_threads();
     };
 
     return execute();
