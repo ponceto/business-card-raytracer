@@ -1025,7 +1025,12 @@ public:
 
     virtual ~renderer() = default;
 
-    void render(ppm::writer&, const int w, const int h, const int samples, const int recursions, const int threads);
+    void render ( ppm::writer& output
+                , const int    width
+                , const int    height
+                , const int    samples
+                , const int    recursions
+                , const int    threads );
 
 protected:
     const scene&             _scene;

@@ -645,13 +645,20 @@ renderer::renderer(const scene& scene)
 {
 }
 
-void renderer::render(ppm::writer& output, const int w, const int h, const int samples, const int recursions, const int threads)
+void renderer::render ( ppm::writer& output
+                      , const int width
+                      , const int height
+                      , const int samples
+                      , const int recursions
+                      , const int threads )
 {
     const rt::camera& camera(_scene.get_camera());
-    const int   half_w = (w / 2);
-    const int   half_h = (h / 2);
+    const int   full_w = width;
+    const int   full_h = height;
+    const int   half_w = full_w / 2;
+    const int   half_h = full_h / 2;
     const float scale  = 255.0f / static_cast<float>(samples);
-    const float fov    = (camera.fov * 512.0f) / static_cast<float>(h < w ? h : w);
+    const float fov    = (camera.fov * 512.0f) / static_cast<float>(full_h < full_w ? full_h : full_w);
     const vec3f right (vec3f::normalize(vec3f::cross(camera.direction, camera.normal)) * fov);
     const vec3f down  (vec3f::normalize(vec3f::cross(camera.direction, right        )) * fov);
     const vec3f corner(camera.direction - (right + down) * 0.5f);
@@ -693,14 +700,14 @@ void renderer::render(ppm::writer& output, const int w, const int h, const int s
 
     auto create_tiles = [&](const int tile_size) -> void
     {
-        for(int y = 0; y < h; y += tile_size) {
-            for(int x = 0; x < w; x += tile_size) {
+        for(int y = 0; y < full_h; y += tile_size) {
+            for(int x = 0; x < full_w; x += tile_size) {
                 tile_record tile(x, y, tile_size, tile_size);
-                if((tile.x + tile.w) >= w) {
-                    tile.w = w - tile.x;
+                if((tile.x + tile.w) >= full_w) {
+                    tile.w = full_w - tile.x;
                 }
-                if((tile.y + tile.h) >= h) {
-                    tile.h = h - tile.y;
+                if((tile.y + tile.h) >= full_h) {
+                    tile.h = full_h - tile.y;
                 }
                 push_tile(tile);
             }
@@ -714,7 +721,7 @@ void renderer::render(ppm::writer& output, const int w, const int h, const int s
         const int x2 = tile.x + tile.w;
         const int y2 = tile.y + tile.h;
         const int col_stride = (3);
-        const int row_stride = (w * col_stride);
+        const int row_stride = (full_w * col_stride);
         uint8_t*  buffer = output.data() + ((tile.y * row_stride) + (tile.x * col_stride));
         for(int y = y1; y < y2; ++y) {
             uint8_t* bufptr = buffer;
