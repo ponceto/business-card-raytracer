@@ -1085,17 +1085,45 @@ public:
 
     virtual ~raytracer() = default;
 
-    void render(ppm::writer&, const int w, const int h, const int samples, const int recursions, const int threads);
-
-protected:
     col3f trace(const ray&, const int depth);
 
     bool hit(const ray&, hit_result& result);
+
+    double random1()
+    {
+        return _random1();
+    }
+
+    double random2()
+    {
+        return _random2();
+    }
 
 protected:
     const scene&     _scene;
     base::randomizer _random1;
     base::randomizer _random2;
+};
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::renderer
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+class renderer
+{
+public:
+    renderer(const scene&);
+
+    virtual ~renderer() = default;
+
+    void render(ppm::writer&, const int w, const int h, const int samples, const int recursions, const int threads);
+
+protected:
+    const scene& _scene;
 };
 
 }

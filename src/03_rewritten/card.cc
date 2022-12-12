@@ -494,7 +494,20 @@ col3f raytracer::trace(const rt::ray& ray, const int recursion)
     return final_color;
 }
 
-void raytracer::render(ppm::writer& output, const int w, const int h, const int samples, const int recursions, const int threads)
+}
+
+// ---------------------------------------------------------------------------
+// rt::renderer
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+renderer::renderer(const scene& scene)
+    : _scene(scene)
+{
+}
+
+void renderer::render(ppm::writer& output, const int w, const int h, const int samples, const int recursions, const int threads)
 {
     const rt::camera& camera(_scene.get_camera());
     const int   half_w = (w / 2);
@@ -519,8 +532,9 @@ void raytracer::render(ppm::writer& output, const int w, const int h, const int 
         return val;
     };
 
-    auto thread_loop = [&](const int block_y, const int block_h) -> void
+    auto render_loop = [&](const int block_y, const int block_h) -> void
     {
+        rt::raytracer raytracer(_scene);
         const int a = block_y;
         const int b = block_y + block_h;
         uint8_t* bufptr = output.data() + ((w * 3) * block_y);
@@ -528,16 +542,16 @@ void raytracer::render(ppm::writer& output, const int w, const int h, const int 
             for(int x = 0; x < w; ++x) {
                 col3f color;
                 for(int count = samples; count != 0; --count) {
-                    const vec3f lens ( ( (right * _random1())
-                                       + ( down * _random1()) ) * camera.dof );
+                    const vec3f lens ( ( (right * raytracer.random1())
+                                       + ( down * raytracer.random1()) ) * camera.dof );
 
-                    const vec3f dir ( (right * (static_cast<float>(x - half_w + 1) + _random1()))
-                                    + ( down * (static_cast<float>(y - half_h + 1) + _random1()))
+                    const vec3f dir ( (right * (static_cast<float>(x - half_w + 1) + raytracer.random1()))
+                                    + ( down * (static_cast<float>(y - half_h + 1) + raytracer.random1()))
                                     + corner );
 
                     const ray primary_ray(camera.position + lens, (dir * camera.focus - lens));
 
-                    color += trace(primary_ray, recursions);
+                    color += raytracer.trace(primary_ray, recursions);
                 }
                 color *= scale;
                 *bufptr++ = clamp(static_cast<int>(color.r));
@@ -557,7 +571,7 @@ void raytracer::render(ppm::writer& output, const int w, const int h, const int 
             if(thread == (threads - 1)) {
                 block_h = (h - block_y);
             }
-            render_threads.push_back(std::thread(thread_loop, block_y, block_h));
+            render_threads.push_back(std::thread(render_loop, block_y, block_h));
             block_y += block_h;
         }
     };
@@ -1022,11 +1036,11 @@ void generator::main()
     {
         ppm::writer output(_output);
         const std::shared_ptr<rt::scene> scene(scene_factory::create(_scene));
-        rt::raytracer raytracer(*scene);
+        rt::renderer renderer(*scene);
 
         output.open(_card_w, _card_h, 255);
         begin();
-        raytracer.render(output, _card_w, _card_h, _samples, _recursions, _threads);
+        renderer.render(output, _card_w, _card_h, _samples, _recursions, _threads);
         end();
         output.store();
         output.close();
