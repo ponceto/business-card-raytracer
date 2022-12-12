@@ -351,30 +351,6 @@ public:
         return *this;
     }
 
-    vec3f checked() const
-    {
-        auto check = [](const float value) -> float
-        {
-            return (value != value ? 0.0f : value);
-        };
-
-        return vec3f ( check(x)
-                     , check(y)
-                     , check(z) );
-    }
-
-    vec3f clamped() const
-    {
-        auto clamp = [](const float value) -> float
-        {
-            return value;
-        };
-
-        return vec3f ( clamp(x)
-                     , clamp(y)
-                     , clamp(z) );
-    }
-
     vec3f normalized() const
     {
         const float veclen = length(*this);
@@ -527,30 +503,6 @@ public:
         return *this;
     }
 
-    pos3f checked() const
-    {
-        auto check = [](const float value) -> float
-        {
-            return (value != value ? 0.0f : value);
-        };
-
-        return pos3f ( check(x)
-                     , check(y)
-                     , check(z) );
-    }
-
-    pos3f clamped() const
-    {
-        auto clamp = [](const float value) -> float
-        {
-            return value;
-        };
-
-        return pos3f ( clamp(x)
-                     , clamp(y)
-                     , clamp(z) );
-    }
-
     static vec3f difference(const pos3f& lhs, const pos3f& rhs)
     {
         return vec3f ( (lhs.x - rhs.x)
@@ -655,39 +607,6 @@ public:
         g /= scalar;
         b /= scalar;
         return *this;
-    }
-
-    col3f checked() const
-    {
-        auto check = [](const float value) -> float
-        {
-            return (value != value ? 0.0f : value);
-        };
-
-        return col3f ( check(r)
-                     , check(g)
-                     , check(b) );
-    }
-
-    col3f clamped() const
-    {
-        auto clamp = [](const float value) -> float
-        {
-            constexpr float min = 0.0f;
-            constexpr float max = 1.0f;
-
-            if(value < min) {
-                return min;
-            }
-            if(value > max) {
-                return max;
-            }
-            return value;
-        };
-
-        return col3f ( clamp(r)
-                     , clamp(g)
-                     , clamp(b) );
     }
 
     float r;
@@ -799,30 +718,14 @@ public:
            , const pos3f& camera_up
            , const float  camera_fov
            , const float  camera_dof
-           , const float  camera_focus )
-        : camera ( camera_position
-                 , pos3f::difference(camera_target, camera_position)
-                 , pos3f::difference(camera_up    , camera_position)
-                 , camera_fov
-                 , camera_dof
-                 , camera_focus )
-    {
-    }
+           , const float  camera_focus );
 
     camera ( const pos3f& camera_position
            , const vec3f& camera_direction
            , const vec3f& camera_normal
            , const float  camera_fov
            , const float  camera_dof
-           , const float  camera_focus )
-        : position(camera_position)
-        , direction(camera_direction, true)
-        , normal(camera_normal, true)
-        , fov(camera_fov)
-        , dof(camera_dof)
-        , focus(camera_focus)
-    {
-    }
+           , const float  camera_focus );
 
     pos3f position;
     vec3f direction;
@@ -845,12 +748,7 @@ class light
 public:
     light ( const pos3f& light_position
           , const col3f& light_color
-          , const float  light_power )
-        : position(light_position)
-        , color(light_color)
-        , power(light_power)
-    {
-    }
+          , const float  light_power );
 
     pos3f position;
     col3f color;
@@ -869,11 +767,7 @@ class sky
 {
 public:
     sky ( const col3f& sky_color
-        , const col3f& sky_ambient )
-        : color(sky_color)
-        , ambient(sky_ambient)
-    {
-    }
+        , const col3f& sky_ambient );
 
     col3f color;
     col3f ambient;
@@ -890,16 +784,7 @@ namespace rt {
 class object
 {
 public:
-    object()
-        : _color0(0.5f, 0.5f, 0.5f)
-        , _color1(1.0f, 0.3f, 0.3f)
-        , _color2(1.0f, 1.0f, 1.0f)
-        , _reflect(0.0f)
-        , _refract(0.0f)
-        , _eta(1.0f)
-        , _specular(0.0f)
-    {
-    }
+    object();
 
     virtual ~object() = default;
 
@@ -965,15 +850,9 @@ class floor final
     : public object
 {
 public:
-    floor ( const pos3f& position
-          , const vec3f& normal
-          , const float  scale )
-        : object()
-        , _position(position)
-        , _normal(normal, true)
-        , _scale(scale)
-    {
-    }
+    floor ( const pos3f& floor_position
+          , const vec3f& floor_normal
+          , const float  floor_scale );
 
     virtual ~floor() = default;
 
@@ -997,13 +876,8 @@ class sphere final
     : public object
 {
 public:
-    sphere ( const pos3f& position
-           , const float  radius )
-        : object()
-        , _position(position)
-        , _radius(radius)
-    {
-    }
+    sphere ( const pos3f& sphere_position
+           , const float  sphere_radius );
 
     virtual ~sphere() = default;
 
@@ -1027,13 +901,7 @@ class scene
 public:
     scene ( const camera& scene_camera
           , const light&  scene_light
-          , const sky&    scene_sky )
-        : _camera(scene_camera)
-        , _light(scene_light)
-        , _sky(scene_sky)
-        , _objects()
-    {
-    }
+          , const sky&    scene_sky );
 
     virtual ~scene() = default;
 

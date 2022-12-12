@@ -14,6 +14,8 @@
 #include <ctime>
 #include <string>
 #include <vector>
+#include <queue>
+#include <mutex>
 #include <chrono>
 #include <memory>
 #include <random>
@@ -269,10 +271,107 @@ void writer::close()
 }
 
 // ---------------------------------------------------------------------------
+// rt::hit_result
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::ray
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::camera
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+camera::camera ( const pos3f& camera_position
+               , const pos3f& camera_target
+               , const pos3f& camera_up
+               , const float  camera_fov
+               , const float  camera_dof
+               , const float  camera_focus )
+    : camera ( camera_position
+             , pos3f::difference(camera_target, camera_position)
+             , pos3f::difference(camera_up    , camera_position)
+             , camera_fov
+             , camera_dof
+             , camera_focus )
+{
+}
+
+camera::camera ( const pos3f& camera_position
+               , const vec3f& camera_direction
+               , const vec3f& camera_normal
+               , const float  camera_fov
+               , const float  camera_dof
+               , const float  camera_focus )
+    : position(camera_position)
+    , direction(camera_direction, true)
+    , normal(camera_normal, true)
+    , fov(camera_fov)
+    , dof(camera_dof)
+    , focus(camera_focus)
+{
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::light
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+light::light ( const pos3f& light_position
+             , const col3f& light_color
+             , const float  light_power )
+    : position(light_position)
+    , color(light_color)
+    , power(light_power)
+{
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::sky
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+sky::sky ( const col3f& sky_color
+         , const col3f& sky_ambient )
+         : color(sky_color)
+         , ambient(sky_ambient)
+{
+}
+
+}
+
+// ---------------------------------------------------------------------------
 // rt::object
 // ---------------------------------------------------------------------------
 
 namespace rt {
+
+object::object()
+    : _color0(0.5f, 0.5f, 0.5f)
+    , _color1(1.0f, 0.3f, 0.3f)
+    , _color2(1.0f, 1.0f, 1.0f)
+    , _reflect(0.0f)
+    , _refract(0.0f)
+    , _eta(1.0f)
+    , _specular(0.0f)
+{
+}
 
 }
 
@@ -281,6 +380,16 @@ namespace rt {
 // ---------------------------------------------------------------------------
 
 namespace rt {
+
+floor::floor ( const pos3f& floor_position
+             , const vec3f& floor_normal
+             , const float  floor_scale )
+    : object()
+    , _position(floor_position)
+    , _normal(floor_normal, true)
+    , _scale(floor_scale)
+{
+}
 
 bool floor::hit(const ray& ray, hit_result& result) const
 {
@@ -318,6 +427,14 @@ bool floor::hit(const ray& ray, hit_result& result) const
 // ---------------------------------------------------------------------------
 
 namespace rt {
+
+sphere::sphere ( const pos3f& sphere_position
+               , const float  sphere_radius )
+    : object()
+    , _position(sphere_position)
+    , _radius(sphere_radius)
+{
+}
 
 bool sphere::hit(const ray& ray, hit_result& result) const
 {
@@ -373,6 +490,24 @@ bool sphere::hit(const ray& ray, hit_result& result) const
     }
 #endif
     return false;
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::scene
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+scene::scene ( const camera& scene_camera
+             , const light&  scene_light
+             , const sky&    scene_sky )
+    : _camera(scene_camera)
+    , _light(scene_light)
+    , _sky(scene_sky)
+    , _objects()
+{
 }
 
 }
@@ -532,14 +667,79 @@ void renderer::render(ppm::writer& output, const int w, const int h, const int s
         return val;
     };
 
-    auto render_loop = [&](const int block_y, const int block_h) -> void
+    struct tile_record
+    {
+        tile_record()
+            : x()
+            , y()
+            , w()
+            , h()
+        {
+        }
+
+        tile_record(int tile_x, int tile_y, int tile_w, int tile_h)
+            : x(tile_x)
+            , y(tile_y)
+            , w(tile_w)
+            , h(tile_h)
+        {
+        }
+
+        int x;
+        int y;
+        int w;
+        int h;
+    };
+
+    std::mutex               mutex;
+    std::queue<tile_record>  render_tiles;
+    std::vector<std::thread> render_threads;
+
+    auto pop_tile = [&](tile_record& tile) -> bool
+    {
+        const std::lock_guard<std::mutex> lock(mutex);
+
+        if(render_tiles.empty()) {
+            return false;
+        }
+        else {
+            tile = render_tiles.front();
+            render_tiles.pop();
+        }
+        return true;
+    };
+
+    auto create_tiles = [&]() -> void
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+
+        const int tile_size = 64;
+        for(int y = 0; y < h; y += tile_size) {
+            for(int x = 0; x < w; x += tile_size) {
+                tile_record tile(x, y, tile_size, tile_size);
+                if((tile.x + tile.w) >= w) {
+                    tile.w = w - tile.x;
+                }
+                if((tile.y + tile.h) >= h) {
+                    tile.h = h - tile.y;
+                }
+                render_tiles.push(tile);
+            }
+        }
+    };
+
+    auto render_tile = [&](const tile_record& tile) -> void
     {
         rt::raytracer raytracer(_scene);
-        const int a = block_y;
-        const int b = block_y + block_h;
-        uint8_t* bufptr = output.data() + ((w * 3) * block_y);
-        for(int y = a; y < b; ++y) {
-            for(int x = 0; x < w; ++x) {
+        const int x1 = tile.x;
+        const int y1 = tile.y;
+        const int x2 = tile.x + tile.w;
+        const int y2 = tile.y + tile.h;
+        const int row_stride = (w * 3);
+        uint8_t*  buffer = output.data() + ((tile.y * row_stride) + (tile.x * 3));
+        for(int y = y1; y < y2; ++y) {
+            uint8_t* bufptr = buffer;
+            for(int x = x1; x < x2; ++x) {
                 col3f color;
                 for(int count = samples; count != 0; --count) {
                     const vec3f lens ( ( (right * raytracer.random1())
@@ -558,21 +758,22 @@ void renderer::render(ppm::writer& output, const int w, const int h, const int s
                 *bufptr++ = clamp(static_cast<int>(color.g));
                 *bufptr++ = clamp(static_cast<int>(color.b));
             }
+            buffer += row_stride;
         }
     };
 
-    std::vector<std::thread> render_threads;
+    auto render_loop = [&]() -> void
+    {
+        tile_record tile;
+        while(pop_tile(tile) != false) {
+            render_tile(tile);
+        }
+    };
 
     auto start_threads = [&]() -> void
     {
-        int block_y  = 0;
-        int block_h  = h / threads;
         for(int thread = 0; thread < threads; ++thread) {
-            if(thread == (threads - 1)) {
-                block_h = (h - block_y);
-            }
-            render_threads.push_back(std::thread(render_loop, block_y, block_h));
-            block_y += block_h;
+            render_threads.push_back(std::thread(render_loop));
         }
     };
 
@@ -585,6 +786,7 @@ void renderer::render(ppm::writer& output, const int w, const int h, const int s
 
     auto execute = [&]() -> void
     {
+        create_tiles();
         start_threads();
         join_threads();
     };
