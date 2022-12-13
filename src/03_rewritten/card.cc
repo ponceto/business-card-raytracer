@@ -402,9 +402,10 @@ bool floor::hit(const ray& ray, hit_result& result) const
         return (c != 0 ? _color1 : _color2);
     };
 
+    const vec3f oc(pos3f::difference(_position, ray.origin));
     constexpr float distance_min = hit_result::DISTANCE_MIN;
     const     float distance_max = result.distance;
-    const     float distance_hit = -ray.origin.z / ray.direction.z;
+    const     float distance_hit = vec3f::dot(oc, _normal) / vec3f::dot(ray.direction, _normal);
     if((distance_hit > distance_min) && (distance_hit < distance_max)) {
         const vec3f length((ray.direction * distance_hit));
         result.distance = distance_hit;
@@ -1044,6 +1045,8 @@ void scene_factory::initialize_spheres()
     _light_position  = rt::pos3f (-3.0f, -7.0f, +5.0f);
     _light_color     = rt::col3f (+1.00f, +1.00f, +1.00f);
     _light_power     = float     (15.0f);
+//  _floor_position  = rt::pos3f (-5.00f, +5.00f, +0.00f);
+//  _floor_normal    = rt::vec3f (+0.00f, +0.00f, +1.00f);
     _floor_color1    = rt::col3f (+0.10f, +0.10f, +0.10f);
     _floor_color2    = rt::col3f (+0.90f, +0.90f, +0.90f);
 }
