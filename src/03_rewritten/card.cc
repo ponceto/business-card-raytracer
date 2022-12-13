@@ -646,15 +646,13 @@ renderer::renderer(const scene& scene)
 }
 
 void renderer::render ( ppm::writer& output
-                      , const int width
-                      , const int height
-                      , const int samples
-                      , const int recursions
-                      , const int threads )
+                      , const int    samples
+                      , const int    recursions
+                      , const int    threads )
 {
     const rt::camera& camera(_scene.get_camera());
-    const int   full_w = width;
-    const int   full_h = height;
+    const int   full_w = output.width();
+    const int   full_h = output.height();
     const int   half_w = full_w / 2;
     const int   half_h = full_h / 2;
     const float scale  = 255.0f / static_cast<float>(samples);
@@ -677,14 +675,14 @@ void renderer::render ( ppm::writer& output
         return val;
     };
 
-    auto push_tile = [&](const tile_record& tile) -> void
+    auto push_tile = [&](const rec4i& tile) -> void
     {
         const base::mutex_locker lock(_mutex);
 
         return _tiles.push(tile);
     };
 
-    auto pop_tile = [&](tile_record& tile) -> bool
+    auto pop_tile = [&](rec4i& tile) -> bool
     {
         const base::mutex_locker lock(_mutex);
 
@@ -702,19 +700,19 @@ void renderer::render ( ppm::writer& output
     {
         for(int y = 0; y < full_h; y += tile_size) {
             for(int x = 0; x < full_w; x += tile_size) {
-                tile_record tile(x, y, tile_size, tile_size);
+                rec4i tile(x, y, tile_size, tile_size);
                 if((tile.x + tile.w) >= full_w) {
-                    tile.w = full_w - tile.x;
+                    tile.w = (full_w - tile.x);
                 }
                 if((tile.y + tile.h) >= full_h) {
-                    tile.h = full_h - tile.y;
+                    tile.h = (full_h - tile.y);
                 }
                 push_tile(tile);
             }
         }
     };
 
-    auto render_tile = [&](rt::raytracer& raytracer, const rt::tile_record& tile) -> void
+    auto render_tile = [&](rt::raytracer& raytracer, const rec4i& tile) -> void
     {
         const int x1 = tile.x;
         const int y1 = tile.y;
@@ -727,7 +725,7 @@ void renderer::render ( ppm::writer& output
             uint8_t* bufptr = buffer;
             for(int x = x1; x < x2; ++x) {
                 col3f color;
-                for(int count = samples; count != 0; --count) {
+                for(int sample = 0; sample < samples; ++sample) {
                     const vec3f lens ( ( (right * raytracer.random1())
                                        + ( down * raytracer.random1()) ) * camera.dof );
 
@@ -751,7 +749,7 @@ void renderer::render ( ppm::writer& output
     auto render_loop = [&]() -> void
     {
         rt::raytracer raytracer(_scene);
-        tile_record   tile;
+        rec4i         tile;
         while(pop_tile(tile) != false) {
             render_tile(raytracer, tile);
         }
@@ -1236,7 +1234,7 @@ void generator::main()
 
         output.open(_card_w, _card_h, 255);
         begin();
-        renderer.render(output, _card_w, _card_h, _samples, _recursions, _threads);
+        renderer.render(output, _samples, _recursions, _threads);
         end();
         output.store();
         output.close();

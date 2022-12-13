@@ -166,6 +166,21 @@ public:
         return _length;
     }
 
+    auto width() const -> int
+    {
+        return _width;
+    }
+
+    auto height() const -> int
+    {
+        return _height;
+    }
+
+    auto maxval() const -> int
+    {
+        return _maxval;
+    }
+
 protected:
     const std::string _filename;
     FILE*             _stream;
@@ -618,6 +633,50 @@ public:
 }
 
 // ---------------------------------------------------------------------------
+// gl::rec4i
+// ---------------------------------------------------------------------------
+
+namespace gl {
+
+class rec4i
+{
+public:
+    rec4i()
+        : x(0)
+        , y(0)
+        , w(0)
+        , h(0)
+    {
+    }
+
+    rec4i ( int rec_x
+          , int rec_y
+          , int rec_w
+          , int rec_h )
+        : x(rec_x)
+        , y(rec_y)
+        , w(rec_w)
+        , h(rec_h)
+    {
+        if(w < 0) {
+            w = -w;
+            x -= w;
+        }
+        if(h < 0) {
+            h = -h;
+            y -= h;
+        }
+    }
+
+    int x;
+    int y;
+    int w;
+    int h;
+};
+
+}
+
+// ---------------------------------------------------------------------------
 // rt::using
 // ---------------------------------------------------------------------------
 
@@ -626,6 +685,7 @@ namespace rt {
 using vec3f = gl::vec3f;
 using pos3f = gl::pos3f;
 using col3f = gl::col3f;
+using rec4i = gl::rec4i;
 
 }
 
@@ -942,42 +1002,6 @@ protected:
 }
 
 // ---------------------------------------------------------------------------
-// rt::tile_record
-// ---------------------------------------------------------------------------
-
-namespace rt {
-
-class tile_record
-{
-public:
-    tile_record()
-        : x()
-        , y()
-        , w()
-        , h()
-    {
-    }
-
-    tile_record ( int tile_x
-                , int tile_y
-                , int tile_w
-                , int tile_h )
-        : x(tile_x)
-        , y(tile_y)
-        , w(tile_w)
-        , h(tile_h)
-    {
-    }
-
-    int x;
-    int y;
-    int w;
-    int h;
-};
-
-}
-
-// ---------------------------------------------------------------------------
 // rt::raytracer
 // ---------------------------------------------------------------------------
 
@@ -1026,8 +1050,6 @@ public:
     virtual ~renderer() = default;
 
     void render ( ppm::writer& output
-                , const int    width
-                , const int    height
                 , const int    samples
                 , const int    recursions
                 , const int    threads );
@@ -1035,7 +1057,7 @@ public:
 protected:
     const scene&             _scene;
     std::mutex               _mutex;
-    std::queue<tile_record>  _tiles;
+    std::queue<rec4i>        _tiles;
     std::vector<std::thread> _threads;
 
 };
