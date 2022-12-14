@@ -69,7 +69,7 @@ CARD_OBJECTS = \
 	$(NULL)
 
 CARD_LIBS = \
-	-lm \
+	-lpthread -lm \
 	$(NULL)
 
 run_card : build_card
