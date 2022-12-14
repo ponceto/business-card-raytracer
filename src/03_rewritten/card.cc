@@ -395,9 +395,13 @@ bool floor::hit(const ray& ray, hit_result& result) const
 {
     auto color = [&]() -> const col3f&
     {
-        const float x = ::ceilf(result.position.x * _scale);
-        const float y = ::ceilf(result.position.y * _scale);
-        const int   c = static_cast<int>(x + y) & 1;
+        const float x = ::roundf(result.position.x * _scale);
+        const float y = ::roundf(result.position.y * _scale);
+        const float z = ::roundf(result.position.z * _scale);
+        const int   c = (static_cast<int>(x) & 1)
+                      ^ (static_cast<int>(y) & 1)
+                      ^ (static_cast<int>(z) & 1)
+                      ;
 
         return (c != 0 ? _color1 : _color2);
     };
@@ -1045,10 +1049,16 @@ void scene_factory::initialize_spheres()
     _light_position  = rt::pos3f (-3.0f, -7.0f, +5.0f);
     _light_color     = rt::col3f (+1.00f, +1.00f, +1.00f);
     _light_power     = float     (15.0f);
-//  _floor_position  = rt::pos3f (-5.00f, +5.00f, +0.00f);
-//  _floor_normal    = rt::vec3f (+0.00f, +0.00f, +1.00f);
     _floor_color1    = rt::col3f (+0.10f, +0.10f, +0.10f);
     _floor_color2    = rt::col3f (+0.90f, +0.90f, +0.90f);
+#if 0
+    _camera_position = rt::pos3f (+0.0f, -7.0f, +5.0f);
+    _camera_target   = rt::pos3f (+0.0f, +0.0f, +1.0f);
+    _camera_top      = rt::pos3f (+0.0f, -7.0f, +6.0f);
+    _camera_focus    = float     (7.0f);
+//  _floor_position  = rt::pos3f (-2.50f, +2.50f, -1.00f);
+//  _floor_normal    = rt::vec3f (+1.00f, -0.50f, +0.50f);
+#endif
 }
 
 std::shared_ptr<rt::scene> scene_factory::build()
