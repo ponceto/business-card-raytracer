@@ -376,22 +376,22 @@ object::object()
 }
 
 // ---------------------------------------------------------------------------
-// rt::floor
+// rt::plane
 // ---------------------------------------------------------------------------
 
 namespace rt {
 
-floor::floor ( const pos3f& floor_position
-             , const vec3f& floor_normal
-             , const float  floor_scale )
+plane::plane ( const pos3f& plane_position
+             , const vec3f& plane_normal
+             , const float  plane_scale )
     : object()
-    , _position(floor_position)
-    , _normal(floor_normal, true)
-    , _scale(floor_scale)
+    , _position(plane_position)
+    , _normal(plane_normal, true)
+    , _scale(plane_scale)
 {
 }
 
-bool floor::hit(const ray& ray, hit_result& result) const
+bool plane::hit(const ray& ray, hit_result& result) const
 {
     auto color = [&]() -> const col3f&
     {
@@ -1065,7 +1065,7 @@ std::shared_ptr<rt::scene> scene_factory::build()
 {
     auto add_floor = [&](rt::scene& scene) -> void
     {
-        std::shared_ptr<rt::floor> obj = std::make_shared<rt::floor>(_floor_position, _floor_normal, _floor_scale);
+        std::shared_ptr<rt::plane> obj = std::make_shared<rt::plane>(_floor_position, _floor_normal, _floor_scale);
         obj->set_color1( _floor_color1);
         obj->set_color2( _floor_color2);
         obj->set_reflect( _floor_reflect);

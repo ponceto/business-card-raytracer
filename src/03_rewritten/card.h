@@ -902,20 +902,20 @@ protected:
 }
 
 // ---------------------------------------------------------------------------
-// rt::floor
+// rt::plane
 // ---------------------------------------------------------------------------
 
 namespace rt {
 
-class floor final
+class plane final
     : public object
 {
 public:
-    floor ( const pos3f& floor_position
-          , const vec3f& floor_normal
-          , const float  floor_scale );
+    plane ( const pos3f& plane_position
+          , const vec3f& plane_normal
+          , const float  plane_scale );
 
-    virtual ~floor() = default;
+    virtual ~plane() = default;
 
     virtual bool hit(const ray&, hit_result&) const override;
 
