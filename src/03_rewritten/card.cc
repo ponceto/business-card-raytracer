@@ -406,10 +406,10 @@ bool plane::hit(const ray& ray, hit_result& result) const
         return (c != 0 ? _color1 : _color2);
     };
 
-    const vec3f oc(pos3f::difference(_position, ray.origin));
+    const vec3f oc(pos3f::difference(ray.origin, _position));
     constexpr float distance_min = hit_result::DISTANCE_MIN;
     const     float distance_max = result.distance;
-    const     float distance_hit = vec3f::dot(oc, _normal) / vec3f::dot(ray.direction, _normal);
+    const     float distance_hit = -vec3f::dot(oc, _normal) / vec3f::dot(ray.direction, _normal);
     if((distance_hit > distance_min) && (distance_hit < distance_max)) {
         const vec3f length((ray.direction * distance_hit));
         result.distance = distance_hit;
@@ -457,7 +457,7 @@ bool sphere::hit(const ray& ray, hit_result& result) const
         const     float distance_max = result.distance;
         const     float distance_hit = ((-b - ::sqrtf(delta)) / (2.0f * a));
         if((distance_hit > distance_min) && (distance_hit < distance_max)) {
-            const vec3f length((ray.direction * distance_hit));
+            const vec3f length(ray.direction * distance_hit);
             result.distance = distance_hit;
             result.position = pos3f(ray.origin + length);
             result.normal   = vec3f(oc + length, true);
@@ -481,7 +481,7 @@ bool sphere::hit(const ray& ray, hit_result& result) const
         const     float distance_max = result.distance;
         const     float distance_hit = (-b - ::sqrtf(delta));
         if((distance_hit > distance_min) && (distance_hit < distance_max)) {
-            const vec3f length((ray.direction * distance_hit));
+            const vec3f length(ray.direction * distance_hit);
             result.distance = distance_hit;
             result.position = pos3f(ray.origin + length);
             result.normal   = vec3f(oc + length, true);
@@ -494,6 +494,29 @@ bool sphere::hit(const ray& ray, hit_result& result) const
         }
     }
 #endif
+    return false;
+}
+
+}
+
+// ---------------------------------------------------------------------------
+// rt::cylinder
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+cylinder::cylinder ( const pos3f& cylinder_point1
+                   , const pos3f& cylinder_point2
+                   , const float  cylinder_radius )
+    : object()
+    , _point1(cylinder_point1)
+    , _point2(cylinder_point2)
+    , _radius(cylinder_radius)
+{
+}
+
+bool cylinder::hit(const ray& ray, hit_result& result) const
+{
     return false;
 }
 

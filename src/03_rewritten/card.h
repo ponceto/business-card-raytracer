@@ -952,6 +952,32 @@ protected:
 }
 
 // ---------------------------------------------------------------------------
+// rt::cylinder
+// ---------------------------------------------------------------------------
+
+namespace rt {
+
+class cylinder final
+    : public object
+{
+public:
+    cylinder ( const pos3f& cylinder_point1
+             , const pos3f& cylinder_point2
+             , const float  cylinder_radius );
+
+    virtual ~cylinder() = default;
+
+    virtual bool hit(const ray&, hit_result&) const override;
+
+protected:
+    pos3f _point1;
+    pos3f _point2;
+    float _radius;
+};
+
+}
+
+// ---------------------------------------------------------------------------
 // rt::scene
 // ---------------------------------------------------------------------------
 
